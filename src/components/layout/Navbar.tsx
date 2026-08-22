@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { IoGameControllerOutline } from 'react-icons/io5';
+import { IoGameControllerOutline, IoPersonOutline } from 'react-icons/io5';
 
 const Navbar = () => {
     return (
@@ -19,12 +19,20 @@ const Navbar = () => {
                     />
                 </a>
             </div>
-            <NavLink
-                to="/games"
-                className="relative md:right-32 text-logo hover:-translate-y-0.5"
-            >
-                <IoGameControllerOutline size={32} />
-            </NavLink>
+            <div className="flex items-center gap-4 relative md:right-32 ">
+                <NavLink
+                    to="/games"
+                    className=" hover:-translate-y-0.5 text-logo"
+                >
+                    <IoGameControllerOutline size={32} />
+                </NavLink>
+                <NavLink
+                    to="/players"
+                    className="hover:-translate-y-0.5 text-logo"
+                >
+                    <IoPersonOutline size={32} />
+                </NavLink>
+            </div>
         </nav>
     );
 };

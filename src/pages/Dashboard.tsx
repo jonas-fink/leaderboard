@@ -5,8 +5,6 @@ import {
     type LeaderboardChartData,
 } from '../schemas';
 
-const CURRENT_USER_ID = 'p-john';
-
 const games: LeaderboardChartData[] = [
     {
         game: {
@@ -159,7 +157,6 @@ const Dashboard = () => {
                 <LeaderChartCard
                     key={data.game.id}
                     data={data}
-                    currentUserId={CURRENT_USER_ID}
                     onViewAll={(slug) => console.log('view all:', slug)}
                 />
             ))}

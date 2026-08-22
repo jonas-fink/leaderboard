@@ -12,12 +12,11 @@ const medals: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
     data,
-    currentUserId,
     onViewAll,
 }) => {
-    const { game, topEntries, totalParticipants, timeframe, userEntry } = data;
+    const { game, topEntries, totalParticipants, timeframe } = data;
 
-    const renderRow = (entry: LeaderboardEntry, isSelf = false) => (
+    const renderRow = (entry: LeaderboardEntry) => (
         <li
             key={entry.id}
             className="flex items-center justify-between gap-3 rounded-lg p-2.5 transition-colors hover:bg-surface-2"
@@ -86,21 +85,8 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
                 </div>
 
                 <ul className="flex-1 space-y-1">
-                    {topEntries
-                        .slice(0, 5)
-                        .map((entry) =>
-                            renderRow(entry, entry.player.id === currentUserId),
-                        )}
+                    {topEntries.slice(0, 5).map((entry) => renderRow(entry))}
                 </ul>
-
-                {userEntry && userEntry.rank > 5 && (
-                    <div className="mt-3 border-t border-dashed border-line pt-2">
-                        <p className="mb-1 px-1 text-[11px] text-ink-mute">
-                            Deine Platzierung:
-                        </p>
-                        {renderRow(userEntry, true)}
-                    </div>
-                )}
 
                 {onViewAll && (
                     <button
