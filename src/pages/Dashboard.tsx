@@ -1,3 +1,4 @@
+import { MdOutlineAdd } from 'react-icons/md';
 import { LeaderChartCard } from '../components/LeaderChartCard';
 import {
     LeaderboardChartDataSchema,
@@ -162,6 +163,9 @@ const Dashboard = () => {
                     onViewAll={(slug) => console.log('view all:', slug)}
                 />
             ))}
+            <button className="flex justify-center items-center max-w-3xl p-8 text-ink-mute border-2 border-dashed border-ink-mute rounded-xl hover:-translate-y-1 cursor-pointer hover:text-ink">
+                <MdOutlineAdd size={48} />
+            </button>
         </div>
     );
 };

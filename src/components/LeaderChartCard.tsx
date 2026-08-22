@@ -20,11 +20,7 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
     const renderRow = (entry: LeaderboardEntry, isSelf = false) => (
         <li
             key={entry.id}
-            className={`flex items-center justify-between gap-3 rounded-lg p-2.5 transition-colors ${
-                isSelf
-                    ? 'bg-accent-soft ring-1 ring-accent/25'
-                    : 'hover:bg-surface-2'
-            }`}
+            className="flex items-center justify-between gap-3 rounded-lg p-2.5 transition-colors hover:bg-surface-2"
         >
             <div className="flex min-w-0 items-center gap-3">
                 <span className="w-6 shrink-0 text-center text-xs font-semibold text-ink-mute">
@@ -45,11 +41,6 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
 
                 <p className="truncate text-sm font-medium text-ink">
                     {entry.player.username}
-                    {isSelf && (
-                        <span className="ml-1.5 text-xs font-normal text-accent">
-                            (Du)
-                        </span>
-                    )}
                 </p>
             </div>
 
@@ -114,7 +105,7 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
                 {onViewAll && (
                     <button
                         onClick={() => onViewAll(game.slug)}
-                        className="mt-4 w-full rounded-lg border border-line bg-surface-2 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-line hover:text-ink"
+                        className="mt-4 w-full rounded-lg border border-line bg-surface-2 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-line hover:text-ink cursor-pointer"
                     >
                         Vollständige Rangliste ansehen →
                     </button>

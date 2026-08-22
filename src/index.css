@@ -9,7 +9,11 @@
     --color-ink-mute: #656e69; /* captions, meta — 4.5:1 auf bg, nicht nur auf surface */
     --color-line: #e4ded4; /* dekorative Trenner, Card-Kanten */
     --color-line-strong: #7f8883; /* Control-Ränder (Inputs) — WCAG 1.4.11, 3:1 */
-
+    --color-logo: #d4af37;
+    --color-header-hextech: #091428;
+    --color-runeterra-sapphire: #0a3254;
+    --color-arcane-teal: #0ac8b9;
+    --color-midnight-cobal: #1c2a4a;
     /* Elevation */
     --shadow-card: 0 4px 14px rgba(30, 25, 15, 0.05);
     --shadow-float: 0 8px 22px rgba(30, 25, 15, 0.08);
@@ -35,10 +39,31 @@
     --color-line-strong: var(--color-line-strong);
     --color-accent: var(--color-accent);
     --color-accent-soft: var(--color-accent-soft);
+    --color-logo: var(--color-logo);
+    --color-header-hextech: var(--color-header-hextech);
+    --color-runeterra-sapphire: var(--color-runeterra-sapphire);
+    --color-arcane-teal: var(--color-arcane-teal);
+    --color-midnight-cobal: var(--color-midnight-cobal);
 
     --shadow-card: var(--shadow-card);
     --shadow-float: var(--shadow-float);
     --shadow-modal: var(--shadow-modal);
+}
+
+.wordmark {
+    font-family: 'Cinzel', 'Times New Roman', serif;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-indent: 0.22em; /* kompensiert das Tracking rechts, hält die Optik mittig */
+    text-transform: uppercase;
+    background: linear-gradient(
+        180deg,
+        var(--color-bg) 0%,
+        var(--color-logo) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 @layer base {

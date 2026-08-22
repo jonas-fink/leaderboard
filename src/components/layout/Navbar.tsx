@@ -1,0 +1,32 @@
+import { NavLink } from 'react-router';
+import { IoGameControllerOutline } from 'react-icons/io5';
+
+const Navbar = () => {
+    return (
+        <nav className="flex items-center border-b border-line backdrop-blur-md bg-linear-to-br from-header-hextech via-runeterra-sapphire to-midnight-cobal p-3">
+            <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-center px-4">
+                <a href="/" className="group flex items-center gap-3">
+                    <span
+                        className="h-px w-8 bg-line-strong sm:w-14"
+                        aria-hidden
+                    />
+                    <span className="wordmark text-xl sm:text-2xl md:text-5xl">
+                        Leaderboard
+                    </span>
+                    <span
+                        className="h-px w-8 bg-line-strong sm:w-14"
+                        aria-hidden
+                    />
+                </a>
+            </div>
+            <NavLink
+                to="/games"
+                className="relative md:right-32 text-logo hover:-translate-y-0.5"
+            >
+                <IoGameControllerOutline size={32} />
+            </NavLink>
+        </nav>
+    );
+};
+
+export default Navbar;
