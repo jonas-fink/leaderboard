@@ -4,15 +4,19 @@ import { formatMetricValue } from '../utils';
 
 interface LeaderChartCardProps {
     data: LeaderboardChartData;
-    currentUserId?: string;
     onViewAll?: (gameSlug: string) => void;
+    onSubmitScore?: (data: LeaderboardChartData) => void;
+    /** Wie viele Ränge die Karte zeigt; auf der Detailseite alle. */
+    limit?: number;
 }
 
 const medals: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
-export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
+const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
     data,
     onViewAll,
+    onSubmitScore,
+    limit = 5,
 }) => {
     const { game, topEntries, totalParticipants, timeframe } = data;
 
@@ -59,7 +63,7 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
                         className="absolute inset-0 -z-10 h-full w-full object-cover"
                     />
                 ) : (
-                    <div className="absolute inset-0 -z-10 bg-ink" />
+                    <div className="absolute inset-0 -z-10 bg-linear-to-br from-header-hextech via-runeterra-sapphire to-midnight-cobal" />
                 )}
                 <div className="absolute inset-0 -z-10 bg-linear-to-t from-black/85 via-black/55 to-black/25" />
 
@@ -84,19 +88,44 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
                     <span>{game.primaryMetric.label}</span>
                 </div>
 
-                <ul className="flex-1 space-y-1">
-                    {topEntries.slice(0, 5).map((entry) => renderRow(entry))}
-                </ul>
-
-                {onViewAll && (
-                    <button
-                        onClick={() => onViewAll(game.slug)}
-                        className="mt-4 w-full rounded-lg border border-line bg-surface-2 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-line hover:text-ink cursor-pointer"
-                    >
-                        Vollständige Rangliste ansehen →
-                    </button>
+                {topEntries.length === 0 ? (
+                    <p className="flex-1 rounded-lg bg-surface-2 px-3 py-6 text-center text-sm text-ink-mute">
+                        Noch keine Ergebnisse.
+                    </p>
+                ) : (
+                    <ul className="flex-1 space-y-1">
+                        {topEntries
+                            .slice(0, limit)
+                            .map((entry) => renderRow(entry))}
+                    </ul>
                 )}
+
+                <div className="mt-4 flex gap-2">
+                    {onSubmitScore && (
+                        <button
+                            onClick={() => onSubmitScore(data)}
+                            className="flex-1 cursor-pointer rounded-lg bg-linear-to-br from-runeterra-sapphire to-midnight-cobal py-2 text-xs font-semibold text-logo transition-opacity hover:opacity-90"
+                        >
+                            Score eintragen
+                        </button>
+                    )}
+                    {onViewAll && (
+                        <button
+                            onClick={() => onViewAll(game.slug)}
+                            className="flex-1 cursor-pointer rounded-lg border border-line bg-surface-2 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-line hover:text-ink"
+                        >
+                            Vollständige Rangliste →
+                        </button>
+                    )}
+                </div>
             </div>
         </article>
     );
 };
+
+/**
+ * memo, damit ein Score-Update nur die betroffene Karte neu rendert:
+ * TanStack Query liefert bei unveränderten Daten dieselbe Objekt-Referenz
+ * zurück, die anderen Karten fallen dadurch aus dem Re-Render heraus.
+ */
+export const LeaderChartCard = React.memo(LeaderChartCardBase);

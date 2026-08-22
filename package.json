@@ -5,12 +5,16 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
+        "dev:server": "npm --prefix server run dev",
         "build": "tsc -b && vite build",
         "lint": "eslint .",
+        "test:server": "npm --prefix server test",
+        "typecheck:server": "npm --prefix server exec tsc -- --noEmit",
         "preview": "vite preview"
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.3.3",
+        "@tanstack/react-query": "^5.101.4",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
         "react-icons": "^5.7.0",

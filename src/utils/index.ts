@@ -1,4 +1,4 @@
-import type { MetricConfig } from '../types';
+import type { MetricConfig } from '../schemas';
 
 export const formatMetricValue = (
     value: number,
