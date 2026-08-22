@@ -60,7 +60,7 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
     );
 
     return (
-        <article className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+        <article className="flex w-full md:max-w-3xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
             <header className="relative isolate flex h-32 flex-col justify-end p-4">
                 {game.coverUrl ? (
                     <img

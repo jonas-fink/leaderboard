@@ -153,7 +153,7 @@ LeaderboardChartDataSchema.array().parse(games);
 
 const Dashboard = () => {
     return (
-        <div className="flex flex-wrap gap-8">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(22rem,1fr))] gap-8">
             {games.map((data) => (
                 <LeaderChartCard
                     key={data.game.id}
