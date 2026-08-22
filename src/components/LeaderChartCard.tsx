@@ -61,7 +61,6 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
 
     return (
         <article className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-            {/* Header mit Cover als Hintergrund */}
             <header className="relative isolate flex h-32 flex-col justify-end p-4">
                 {game.coverUrl ? (
                     <img
@@ -70,11 +69,9 @@ export const LeaderChartCard: React.FC<LeaderChartCardProps> = ({
                         className="absolute inset-0 -z-10 h-full w-full object-cover"
                     />
                 ) : (
-                    // ponytail: Fallback statt Platzhalterbild
                     <div className="absolute inset-0 -z-10 bg-ink" />
                 )}
-                {/* Overlay hält den Text lesbar, egal wie hell das Cover ist */}
-                <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/55 to-black/25" />
+                <div className="absolute inset-0 -z-10 bg-linear-to-t from-black/85 via-black/55 to-black/25" />
 
                 <div className="flex items-end justify-between gap-2">
                     <div className="min-w-0">

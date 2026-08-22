@@ -12,7 +12,8 @@ const games: LeaderboardChartData[] = [
             id: 'g-rocket-league',
             slug: 'rocket-league',
             title: 'Rocket League',
-            coverUrl: 'https://picsum.photos/seed/rocket-league/640/240',
+            coverUrl:
+                'https://www.nintendo.com/eu/media/images/10_share_images/games_15/nintendo_switch_download_software_1/2x1_NSwitchDS_RocketLeague_S16.jpg',
             genre: 'sports',
             primaryMetric: {
                 key: 'goals',
@@ -82,7 +83,8 @@ const games: LeaderboardChartData[] = [
             id: 'g-mario-kart',
             slug: 'mario-kart-8',
             title: 'Mario Kart 8',
-            coverUrl: 'https://picsum.photos/seed/mario-kart/640/240',
+            coverUrl:
+                'https://www.nintendo.com/eu/media/images/08_content_images/games_6/nintendo_switch_7/nswitch_mariokart8deluxe/booster_hero_img.jpg',
             genre: 'racing',
             primaryMetric: {
                 key: 'best_lap',
@@ -143,65 +145,6 @@ const games: LeaderboardChartData[] = [
             rank: 9,
             recordedAt: '2026-08-21T22:12:00.000Z',
         },
-    },
-    {
-        game: {
-            id: 'g-counter-strike',
-            slug: 'counter-strike-2',
-            title: 'Counter-Strike 2',
-            coverUrl: 'https://picsum.photos/seed/counter-strike/640/240',
-            genre: 'fps',
-            primaryMetric: {
-                key: 'kd_ratio',
-                label: 'K/D',
-                sortOrder: 'DESC',
-                formatter: 'decimal',
-            },
-        },
-        timeframe: 'season',
-        totalParticipants: 64,
-        topEntries: [
-            {
-                id: 'e-cs-1',
-                gameId: 'g-counter-strike',
-                player: { id: 'p-tarek', username: 'Tarek', countryCode: 'DE' },
-                primaryValue: 2.14,
-                rank: 1,
-                recordedAt: '2026-08-15T20:00:00.000Z',
-            },
-            {
-                id: 'e-cs-2',
-                gameId: 'g-counter-strike',
-                player: { id: 'p-john', username: 'John', countryCode: 'DE' },
-                primaryValue: 1.87,
-                rank: 2,
-                recordedAt: '2026-08-16T21:30:00.000Z',
-            },
-            {
-                id: 'e-cs-3',
-                gameId: 'g-counter-strike',
-                player: { id: 'p-lena', username: 'Lena', countryCode: 'DE' },
-                primaryValue: 1.62,
-                rank: 3,
-                recordedAt: '2026-08-18T19:15:00.000Z',
-            },
-            {
-                id: 'e-cs-4',
-                gameId: 'g-counter-strike',
-                player: { id: 'p-bob', username: 'Bob', countryCode: 'AT' },
-                primaryValue: 1.35,
-                rank: 4,
-                recordedAt: '2026-08-20T22:48:00.000Z',
-            },
-            {
-                id: 'e-cs-5',
-                gameId: 'g-counter-strike',
-                player: { id: 'p-mira', username: 'Mira', countryCode: 'CH' },
-                primaryValue: 1.09,
-                rank: 5,
-                recordedAt: '2026-08-21T20:05:00.000Z',
-            },
-        ],
     },
 ];
 
