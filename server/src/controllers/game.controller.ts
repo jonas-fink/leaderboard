@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 import * as gameService from '#services/game.service';
+import { emitBoardUpdate } from '#realtime';
 import type { CreateGameInput, UpdateGameInput } from '#types';
 
 export const getGames: RequestHandler = async (_req, res) => {
@@ -15,7 +16,9 @@ export const postGame: RequestHandler<
     unknown,
     CreateGameInput
 > = async (req, res) => {
-    res.status(201).json(await gameService.createGame(req.body));
+    const game = await gameService.createGame(req.body);
+    await emitBoardUpdate(game.tournamentId);
+    res.status(201).json(game);
 };
 
 export const patchGame: RequestHandler<
@@ -23,10 +26,14 @@ export const patchGame: RequestHandler<
     unknown,
     UpdateGameInput
 > = async (req, res) => {
-    res.json(await gameService.updateGame(req.params.id, req.body));
+    // Status, pinned, weight und boardOrder ändern das Board unmittelbar.
+    const game = await gameService.updateGame(req.params.id, req.body);
+    await emitBoardUpdate(game.tournamentId);
+    res.json(game);
 };
 
 export const deleteGame: RequestHandler<{ id: string }> = async (req, res) => {
-    await gameService.deleteGame(req.params.id);
+    const game = await gameService.deleteGame(req.params.id);
+    await emitBoardUpdate(game.tournamentId);
     res.status(204).end();
 };

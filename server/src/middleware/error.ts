@@ -1,5 +1,6 @@
 import { ZodError } from 'zod';
 import { Error as MongooseError } from 'mongoose';
+import { MulterError } from 'multer';
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import type { HttpError } from '#types';
 
@@ -25,6 +26,18 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
     if (err instanceof MongooseError.CastError) {
         res.status(400).json({ message: `Ungültige ID: ${err.value}` });
+        return;
+    }
+
+    if (err instanceof MulterError) {
+        // Multer wirft ohne Status; 413 für "zu groß", sonst ein Bedienfehler.
+        const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+        res.status(status).json({
+            message:
+                err.code === 'LIMIT_FILE_SIZE'
+                    ? 'Datei ist größer als 2 MB'
+                    : `Upload abgelehnt: ${err.message}`,
+        });
         return;
     }
 

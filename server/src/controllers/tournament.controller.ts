@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 import * as tournamentService from '#services/tournament.service';
+import { emitBoardUpdate, emitTournamentStatus } from '#realtime';
 import type { CreateTournamentInput, UpdateTournamentInput } from '#types';
 
 export const getTournaments: RequestHandler = async (_req, res) => {
@@ -26,13 +27,15 @@ export const patchTournament: RequestHandler<
     unknown,
     UpdateTournamentInput
 > = async (req, res) => {
-    res.json(await tournamentService.updateTournament(req.params.id, req.body));
-};
-
-export const deleteTournament: RequestHandler<{ id: string }> = async (
-    req,
-    res,
-) => {
-    await tournamentService.deleteTournament(req.params.id);
-    res.status(204).end();
+    const tournament = await tournamentService.updateTournament(
+        req.params.id,
+        req.body,
+    );
+    // Der Statuswechsel zuerst: 'finished' startet auf dem Board die
+    // Siegerehrung, und die soll auf dem endgültigen Zustand stehen.
+    await emitBoardUpdate(tournament.id);
+    if (req.body.status) {
+        emitTournamentStatus(tournament.id, tournament.status);
+    }
+    res.json(tournament);
 };

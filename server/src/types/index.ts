@@ -36,6 +36,13 @@ export type {
     BoardState,
     AnnouncementType,
     Announcement,
+    RoomJoin,
+    TournamentStatusEvent,
+    ServerToClientEvents,
+    ClientToServerEvents,
+    LoginInput,
+    AuthToken,
+    UploadResult,
 } from '#schemas';
 
 /** Ein Score, wie er die DB verlässt — flach, IDs als Strings. */

@@ -17,4 +17,7 @@ tournamentRouter.patch(
     validateBody(UpdateTournamentSchema),
     tournamentController.patchTournament,
 );
-tournamentRouter.delete('/:id', tournamentController.deleteTournament);
+// Kein DELETE über die API: das Löschen räumt Teams, Games und Scores mit ab
+// (Kaskade in tournament.service). Über den Funnel wäre ein durchprobierter
+// PIN damit nicht ein falscher Punktestand, sondern das ganze Event.
+// Zum Aufräumen: `npm run seed -- --yes` oder direkt an der Datenbank.

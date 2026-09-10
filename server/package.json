@@ -11,6 +11,7 @@
     },
     "imports": {
         "#config": "./src/config/index.ts",
+        "#content": "./src/content/index.ts",
         "#db": "./src/db/index.ts",
         "#models": "./src/models/index.ts",
         "#schemas": "./src/schemas/index.ts",
@@ -20,15 +21,20 @@
         "#services/*": "./src/services/*.ts",
         "#controllers": "./src/controllers/index.ts",
         "#routes": "./src/routes/index.ts",
-        "#middleware": "./src/middleware/index.ts"
+        "#middleware": "./src/middleware/index.ts",
+        "#realtime": "./src/realtime/index.ts"
     },
     "dependencies": {
         "express": "^5.1.0",
         "mongoose": "^9.9.3",
+        "multer": "^2.3.0",
+        "sharp": "^0.35.4",
+        "socket.io": "^4.8.3",
         "zod": "^4.4.3"
     },
     "devDependencies": {
         "@types/express": "^5.0.6",
+        "@types/multer": "^2.2.0",
         "@types/node": "^26.2.0",
         "typescript": "^7.0.2"
     }

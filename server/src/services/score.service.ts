@@ -104,7 +104,9 @@ export const updateScore = async (
     return toRaw(doc);
 };
 
-export const deleteScore = async (id: string): Promise<void> => {
+/** Gibt den gelöschten Score zurück — der Emitter braucht die tournamentId. */
+export const deleteScore = async (id: string): Promise<RawScore> => {
     const doc = await Score.findByIdAndDelete(id);
     if (!doc) throw notFound('Score');
+    return toRaw(doc);
 };

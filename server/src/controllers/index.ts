@@ -4,3 +4,6 @@ export * as gameController from './game.controller.ts';
 export * as playerController from './player.controller.ts';
 export * as scoreController from './score.controller.ts';
 export * as leaderboardController from './leaderboard.controller.ts';
+export * as boardController from './board.controller.ts';
+export * as authController from './auth.controller.ts';
+export * as uploadController from './upload.controller.ts';

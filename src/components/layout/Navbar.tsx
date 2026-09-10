@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router';
 import { IoGameControllerOutline, IoPersonOutline } from 'react-icons/io5';
+import PinLock from './PinLock';
 
 const Navbar = () => {
     return (
@@ -33,6 +34,7 @@ const Navbar = () => {
                 >
                     <IoPersonOutline size={32} />
                 </NavLink>
+                <PinLock />
             </div>
         </nav>
     );

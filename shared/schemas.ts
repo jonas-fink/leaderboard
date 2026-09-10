@@ -17,6 +17,16 @@ export const TournamentStatusSchema = z.enum([
 ]);
 export const GameStatusSchema = z.enum(['upcoming', 'running', 'finished']);
 
+/**
+ * Bild-Adresse: entweder extern oder ein Upload auf demselben Server.
+ * Uploads liegen unter `/uploads/<name>` und sind damit relativ — `z.url()`
+ * allein würde genau die Adressen ablehnen, die der eigene Upload ausgibt.
+ */
+export const ImageUrlSchema = z.union([
+    z.url(),
+    z.string().regex(/^\/uploads\/[\w.-]+$/),
+]);
+
 // Konfiguration einzelner Metriken
 export const MetricConfigSchema = z.object({
     key: z.string().min(1).max(50),
@@ -41,7 +51,7 @@ const GameFields = z.object({
         ),
     title: z.string().min(1).max(100),
     genre: z.enum(['racing', 'sports', 'arcade', 'fps', 'custom']),
-    coverUrl: z.url().optional(),
+    coverUrl: ImageUrlSchema.optional(),
     primaryMetric: MetricConfigSchema,
     secondaryMetrics: z.array(MetricConfigSchema).optional(),
     // Gewichtungsfaktor der Disziplin — ein Finale zählt zum Beispiel doppelt.
@@ -62,7 +72,7 @@ const PlayerFields = z.object({
     username: z.string().min(2).max(30),
     // Anzeigename auf dem Board; fehlt er, steht dort der username.
     displayName: z.string().min(1).max(30).optional(),
-    avatarUrl: z.url().optional(),
+    avatarUrl: ImageUrlSchema.optional(),
     // Deterministischer Fallback-Sprite, wenn kein Avatar hochgeladen ist.
     avatarSeed: z.string().min(1),
     // Bleibt erhalten, wird auf dem Board aber nicht genutzt.
@@ -200,7 +210,7 @@ export const StandingsEntrySchema = z.object({
     name: z.string().min(1),
     // Avatar oder Team-Banner; fehlt beides, rendert der Client den
     // deterministischen Pixel-Sprite aus avatarSeed.
-    imageUrl: z.url().optional(),
+    imageUrl: ImageUrlSchema.optional(),
     avatarSeed: z.string().min(1),
     // Balkenfarbe. Nur im Team-Modus gesetzt (colorPrimary aus der DB), im
     // Spieler-Modus greift der Client auf einen Token zurück.
@@ -298,6 +308,18 @@ export const AnnouncementSchema = z.object({
     rank: z.number().int().positive().optional(),
 });
 
+// --- Zugriffsschutz und Upload (PROJEKT.md §8, §9) -------------------------
+
+/** Kein User-Modell — eine geteilte Passphrase schaltet das Schreiben frei. */
+export const LoginSchema = z.object({ pin: z.string().min(1) });
+export const AuthTokenSchema = z.object({ token: z.string().min(1) });
+/** Antwort des Uploads; die Adresse wandert danach in ein Entitätsfeld. */
+export const UploadResultSchema = z.object({ url: ImageUrlSchema });
+
+export type LoginInput = z.infer<typeof LoginSchema>;
+export type AuthToken = z.infer<typeof AuthTokenSchema>;
+export type UploadResult = z.infer<typeof UploadResultSchema>;
+
 // --- Socket-Events (PROJEKT.md §5, KONVENTIONEN.md §8) ---------------------
 
 export const RoomJoinSchema = z.object({ tournamentId: z.string().min(1) });
@@ -362,7 +384,7 @@ const TournamentFields = z.object({
         ),
     // Einziger Wert bis auf Weiteres; das Feld existiert für spätere Varianten.
     tieBreak: z.enum(['olympic']),
-    bannerUrl: z.url().optional(),
+    bannerUrl: ImageUrlSchema.optional(),
 });
 
 export const TournamentSchema = TournamentFields.extend({
@@ -384,7 +406,7 @@ const TeamFields = z.object({
         .string()
         .regex(/^#[0-9a-fA-F]{6}$/, 'Farbe muss ein Hex-Wert wie #ff2d9b sein')
         .optional(),
-    bannerUrl: z.url().optional(),
+    bannerUrl: ImageUrlSchema.optional(),
     avatarSeed: z.string().min(1),
     members: z.array(z.string().min(1)),
 });

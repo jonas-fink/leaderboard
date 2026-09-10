@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Hochgeladene Bilder — Inhalt des Events, nicht des Repos
+server/uploads
+
 # Secrets
 .env
 .env.*

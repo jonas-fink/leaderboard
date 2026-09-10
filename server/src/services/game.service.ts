@@ -6,8 +6,11 @@ import type {
     UpdateGameInput,
 } from '#types';
 
-export const listGames = async (): Promise<GameType[]> => {
-    const docs = await Game.find().sort({ title: 1 });
+/** Ohne Filter alle Games, mit `tournamentId` die eines Turniers. */
+export const listGames = async (tournamentId?: string): Promise<GameType[]> => {
+    const docs = await Game.find(tournamentId ? { tournamentId } : {}).sort({
+        title: 1,
+    });
     return docs.map((doc) => asApi<GameType>(doc));
 };
 
@@ -34,8 +37,10 @@ export const updateGame = async (
     return asApi<GameType>(doc);
 };
 
-export const deleteGame = async (id: string): Promise<void> => {
+/** Gibt das gelöschte Game zurück — der Emitter braucht die tournamentId. */
+export const deleteGame = async (id: string): Promise<GameType> => {
     const doc = await Game.findByIdAndDelete(id);
     if (!doc) throw notFound('Game');
     await Score.deleteMany({ gameId: id });
+    return asApi<GameType>(doc);
 };

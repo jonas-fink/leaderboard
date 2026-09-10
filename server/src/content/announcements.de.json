@@ -1,0 +1,58 @@
+{
+    "first_score": [
+        "{entrant} legt in {game} vor: {value}",
+        "Erster Versuch von {entrant} in {game} — {value}, Platz {rank}",
+        "{entrant} ist in {game} eingestiegen: {value}",
+        "Neu auf der Liste: {entrant} mit {value} in {game}",
+        "{entrant} eröffnet {game} mit {value}",
+        "{game}: {entrant} startet auf Platz {rank}"
+    ],
+    "personal_best": [
+        "{entrant} verbessert sich in {game} auf {value}",
+        "Neue Bestleistung: {entrant} schafft {value} in {game}",
+        "{entrant} legt in {game} nach — {value}, Platz {rank}",
+        "Da geht noch was: {entrant} jetzt bei {value} in {game}",
+        "{entrant} schraubt in {game} auf {value}",
+        "{game}: {entrant} klettert auf Platz {rank}"
+    ],
+    "new_leader": [
+        "{entrant} übernimmt die Führung!",
+        "Neuer Spitzenreiter: {entrant}",
+        "{entrant} steht ganz oben",
+        "Führungswechsel — {entrant} ist Erster",
+        "{entrant} setzt sich an die Spitze",
+        "Ab jetzt jagen alle {entrant}"
+    ],
+    "overtake": [
+        "{entrant} schiebt sich auf Platz {rank}",
+        "Überholmanöver: {entrant} ist jetzt {rank}.",
+        "{entrant} zieht vorbei — Platz {rank}",
+        "Aufstieg für {entrant}: Rang {rank}",
+        "{entrant} arbeitet sich auf {rank} vor",
+        "Platz {rank} gehört jetzt {entrant}"
+    ],
+    "tie_broken": [
+        "Gleichstand aufgelöst: {entrant} liegt auf {rank}",
+        "{entrant} macht den Punktgleichstand klar — Platz {rank}",
+        "Entschieden: {entrant} behält Rang {rank}",
+        "{entrant} setzt sich im Gleichstand durch, Platz {rank}",
+        "Kein Patt mehr — {entrant} ist {rank}.",
+        "{entrant} zieht im direkten Vergleich davon: Platz {rank}"
+    ],
+    "game_finished": [
+        "{game} ist durch — {entrant} gewinnt",
+        "Abgepfiffen: {entrant} holt sich {game}",
+        "{entrant} gewinnt {game}",
+        "Letzter Versuch gespielt: {game} geht an {entrant}",
+        "{game} entschieden — Sieger ist {entrant}",
+        "Punkt für {entrant}: {game} ist beendet"
+    ],
+    "tournament_finished": [
+        "Das Turnier ist beendet!",
+        "Alle Disziplinen gespielt — Zeit für die Siegerehrung",
+        "Schlusspfiff. Die Gesamtwertung steht.",
+        "Damit ist Schluss: das Endergebnis steht fest",
+        "Turnierende — Bühne frei für die Siegerehrung",
+        "Gespielt ist gespielt. Ergebnis steht."
+    ]
+}

@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 import * as scoreService from '#services/score.service';
+import { emitBoardUpdate } from '#realtime';
 import type { SubmitScoreInput, UpdateScoreInput } from '#types';
 
 export const getScores: RequestHandler<
@@ -22,7 +23,9 @@ export const postScore: RequestHandler<
     unknown,
     SubmitScoreInput
 > = async (req, res) => {
-    res.status(201).json(await scoreService.createScore(req.body));
+    const score = await scoreService.createScore(req.body);
+    await emitBoardUpdate(score.tournamentId);
+    res.status(201).json(score);
 };
 
 export const patchScore: RequestHandler<
@@ -30,10 +33,13 @@ export const patchScore: RequestHandler<
     unknown,
     UpdateScoreInput
 > = async (req, res) => {
-    res.json(await scoreService.updateScore(req.params.id, req.body));
+    const score = await scoreService.updateScore(req.params.id, req.body);
+    await emitBoardUpdate(score.tournamentId);
+    res.json(score);
 };
 
 export const deleteScore: RequestHandler<{ id: string }> = async (req, res) => {
-    await scoreService.deleteScore(req.params.id);
+    const score = await scoreService.deleteScore(req.params.id);
+    await emitBoardUpdate(score.tournamentId);
     res.status(204).end();
 };

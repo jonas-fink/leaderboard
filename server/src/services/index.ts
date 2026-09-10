@@ -1,3 +1,4 @@
+export * from './auth.service.ts';
 export * from './tournament.service.ts';
 export * from './team.service.ts';
 export * from './rank.ts';
@@ -8,3 +9,5 @@ export * from './game.service.ts';
 export * from './player.service.ts';
 export * from './score.service.ts';
 export * from './leaderboard.service.ts';
+export * from './board.service.ts';
+export * from './upload.service.ts';
