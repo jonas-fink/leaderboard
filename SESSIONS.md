@@ -17,6 +17,40 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — Seed-Skript
+
+**Gebaut**
+
+- `server/src/seed.ts` plus `npm run seed`: leert alle fünf Collections und
+  legt ein Beispielturnier an — 6 Spieler, 3 Games, 9 Scores.
+
+**Entschieden**
+
+- **`npm run seed` allein tut nichts.** `MONGODB_URI` zeigt auf einen
+  gehosteten Atlas-Cluster; ein versehentlicher Lauf wäre dort nicht
+  rückholbar. Das Skript nennt Datenbank und Host und verlangt
+  `npm run seed -- --yes`.
+- **Das Beispiel läuft im `player`-Modus.** Die Score-Eingabe kennt derzeit
+  nur Spieler; ein Team-Beispiel wäre nicht bespielbar. Kommt, sobald
+  /control Teamwertungen eintragen kann — `Team` bleibt bis dahin ungeseedet.
+- **Die Daten sind auf die Wertungsregeln zugeschnitten:** ein Gleichstand
+  auf Rang 2 in Mario Kart für die Punktemittelung, ein Finale mit
+  `weight: 2` für den Gewichtungsfaktor, drei verschiedene `status`-Werte und
+  beide Sortierrichtungen (`time_ms`/ASC und `integer`/DESC).
+- **Eine Datei, kein `scripts/`-Ordner.** Ein neuer Ordner bräuchte nach
+  KONVENTIONEN §2 einen eigenen Alias; für ein Skript ist das zu viel.
+
+**Offen**
+
+- Skript ist gebaut, aber **nicht ausgeführt** — der Lauf gegen den
+  gehosteten Cluster gehört dem Projektleiter.
+- `Player` fehlen weiterhin `displayName` und `avatarSeed` (§12); das Seed
+  legt sie deshalb nur mit `username` an.
+- `content/announcements.de.json` und der Zieher mit Gedächtnis.
+- Der Board-Service, der die vier Rule-Module verkettet.
+
+---
+
 ## 2026-09-10 — Turnier-Picker im Game-Formular
 
 **Gebaut**
