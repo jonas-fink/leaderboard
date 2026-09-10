@@ -9,6 +9,7 @@ import type {
 } from '../schemas';
 
 export const queryKeys = {
+    tournaments: ['tournaments'] as const,
     games: ['games'] as const,
     players: ['players'] as const,
     leaderboards: ['leaderboard'] as const,
@@ -17,6 +18,12 @@ export const queryKeys = {
 };
 
 // --- Queries -------------------------------------------------------------
+
+export const useTournaments = () =>
+    useQuery({
+        queryKey: queryKeys.tournaments,
+        queryFn: api.fetchTournaments,
+    });
 
 export const useGames = () =>
     useQuery({ queryKey: queryKeys.games, queryFn: api.fetchGames });

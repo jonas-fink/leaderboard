@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+    TournamentSchema,
     GameSchema,
     PlayerSchema,
     PlayerStatsSchema,
@@ -36,6 +37,11 @@ const request = async <T>(
 
 const body = (data: unknown) => ({ body: JSON.stringify(data) });
 const voidSchema = z.undefined();
+
+// --- Turniere ------------------------------------------------------------
+
+export const fetchTournaments = () =>
+    request('/tournaments', TournamentSchema.array());
 
 // --- Games ---------------------------------------------------------------
 

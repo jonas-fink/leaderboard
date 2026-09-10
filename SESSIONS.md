@@ -17,6 +17,37 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — Turnier-Picker im Game-Formular
+
+**Gebaut**
+
+- `api.fetchTournaments`, `useTournaments`, `queryKeys.tournaments`.
+- `GameFormModal`: Turnier-Select neben dem Genre; damit ist die Zwei-Spalten-
+  Zeile wieder gefüllt, die der Wegfall von `timeframe` hinterlassen hat.
+
+**Entschieden**
+
+- **Die Auswahl fällt abgeleitet, nicht per Effect.**
+  `form.tournamentId || tournaments[0]?.id || ''` — beim Anlegen gilt das
+  erste Turnier, bis eines gewählt wird. Ein `useEffect`, der den Formstate
+  nach dem Laden nachzieht, wäre eine Synchronisationsquelle mehr für
+  denselben Effekt.
+- **Nur Lesen.** Turniere anlegen, ändern oder löschen kann die Oberfläche
+  nicht — das gehört nach `/control` (§2) und war hier nicht gefragt.
+- **Kein TDD.** UI-Code, KONVENTIONEN §7.1.
+
+**Offen**
+
+- **Der Picker ist leer, solange kein Turnier existiert**, und angelegt
+  werden kann derzeit keines. Das Seed-Skript aus §12 ist die vorgesehene
+  Quelle und damit der nächste sinnvolle Schritt — ohne das bleibt das
+  Anlegen von Games blockiert.
+- `Player` fehlen weiterhin `displayName` und `avatarSeed` (§12).
+- `content/announcements.de.json` und der Zieher mit Gedächtnis.
+- Der Board-Service, der die vier Rule-Module verkettet.
+
+---
+
 ## 2026-09-10 — REST für Tournament und Team
 
 **Gebaut**

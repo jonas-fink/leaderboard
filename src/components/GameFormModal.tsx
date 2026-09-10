@@ -8,7 +8,7 @@ import {
     inputClass,
     primaryButtonClass,
 } from '../lib/form';
-import { useCreateGame, useUpdateGame } from '../hooks';
+import { useCreateGame, useUpdateGame, useTournaments } from '../hooks';
 import { CreateGameSchema, type Game } from '../schemas';
 
 const GENRES = ['racing', 'sports', 'arcade', 'fps', 'custom'] as const;
@@ -21,6 +21,7 @@ const slugify = (value: string) =>
         .replace(/^-|-$/g, '');
 
 type FormState = {
+    tournamentId: string;
     title: string;
     slug: string;
     genre: string;
@@ -33,6 +34,7 @@ type FormState = {
 };
 
 const emptyForm: FormState = {
+    tournamentId: '',
     title: '',
     slug: '',
     genre: 'arcade',
@@ -45,6 +47,7 @@ const emptyForm: FormState = {
 };
 
 const toForm = (game: Game): FormState => ({
+    tournamentId: game.tournamentId,
     title: game.title,
     slug: game.slug,
     genre: game.genre,
@@ -69,6 +72,11 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
     );
     const [errors, setErrors] = useState<Record<string, string>>({});
 
+    const { data: tournaments = [] } = useTournaments();
+    // Solange keine Wahl getroffen wurde, gilt das erste Turnier: bei einem
+    // einzigen laufenden Event wäre alles andere ein Klick zu viel.
+    const tournamentId = form.tournamentId || tournaments[0]?.id || '';
+
     const createGame = useCreateGame();
     const updateGame = useUpdateGame();
     const pending = createGame.isPending || updateGame.isPending;
@@ -85,9 +93,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             slug: (form.slug || slugify(form.title)).trim(),
             genre: form.genre,
             coverUrl: form.coverUrl.trim() || undefined,
-            // Ohne Turnier-Auswahl lässt sich hier nichts Neues anlegen; der
-            // Picker kommt mit /control (PROJEKT.md §2). Bearbeiten geht.
-            tournamentId: game?.tournamentId ?? '',
+            tournamentId,
             pinned: game?.pinned ?? false,
             weight: game?.weight ?? 1,
             boardOrder: game?.boardOrder ?? 0,
@@ -158,6 +164,33 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                 </Field>
 
                 <div className="grid grid-cols-2 gap-4">
+                    <Field
+                        label="Turnier"
+                        error={errors.tournamentId}
+                        hint={
+                            tournaments.length === 0
+                                ? 'Kein Turnier vorhanden.'
+                                : undefined
+                        }
+                    >
+                        <select
+                            className={inputClass}
+                            value={tournamentId}
+                            onChange={(e) =>
+                                set('tournamentId')(e.target.value)
+                            }
+                        >
+                            {tournaments.map((tournament) => (
+                                <option
+                                    key={tournament.id}
+                                    value={tournament.id}
+                                >
+                                    {tournament.title}
+                                </option>
+                            ))}
+                        </select>
+                    </Field>
+
                     <Field label="Genre" error={errors.genre}>
                         <select
                             className={inputClass}
