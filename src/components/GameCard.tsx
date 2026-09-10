@@ -71,7 +71,7 @@ export const GameCard = ({
                 {game.title}
             </h3>
             <p className="mt-1 text-xs text-white/70">
-                {game.primaryMetric.label} · {game.timeframe.replace('_', ' ')}
+                {game.primaryMetric.label}
                 {game.pinned && ' · auf dem Dashboard'}
             </p>
         </div>

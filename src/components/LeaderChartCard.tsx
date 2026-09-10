@@ -18,7 +18,7 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
     onSubmitScore,
     limit = 5,
 }) => {
-    const { game, topEntries, totalParticipants, timeframe } = data;
+    const { game, topEntries, totalParticipants } = data;
 
     const renderRow = (entry: LeaderboardEntry) => (
         <li
@@ -70,7 +70,7 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
                 <div className="flex items-end justify-between gap-2">
                     <div className="min-w-0">
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-white/75">
-                            {game.genre} • {timeframe.replace('_', ' ')}
+                            {game.genre}
                         </span>
                         <h3 className="truncate text-lg font-bold text-white">
                             {game.title}

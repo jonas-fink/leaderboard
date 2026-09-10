@@ -12,7 +12,6 @@ import { useCreateGame, useUpdateGame } from '../hooks';
 import { CreateGameSchema, type Game } from '../schemas';
 
 const GENRES = ['racing', 'sports', 'arcade', 'fps', 'custom'] as const;
-const TIMEFRAMES = ['all_time', 'season', 'monthly', 'weekly'] as const;
 const FORMATTERS = ['integer', 'decimal', 'time_ms', 'currency'] as const;
 
 const slugify = (value: string) =>
@@ -26,7 +25,6 @@ type FormState = {
     slug: string;
     genre: string;
     coverUrl: string;
-    timeframe: string;
     metricLabel: string;
     metricKey: string;
     sortOrder: string;
@@ -39,7 +37,6 @@ const emptyForm: FormState = {
     slug: '',
     genre: 'arcade',
     coverUrl: '',
-    timeframe: 'all_time',
     metricLabel: '',
     metricKey: '',
     sortOrder: 'DESC',
@@ -52,7 +49,6 @@ const toForm = (game: Game): FormState => ({
     slug: game.slug,
     genre: game.genre,
     coverUrl: game.coverUrl ?? '',
-    timeframe: game.timeframe,
     metricLabel: game.primaryMetric.label,
     metricKey: game.primaryMetric.key,
     sortOrder: game.primaryMetric.sortOrder,
@@ -89,8 +85,13 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             slug: (form.slug || slugify(form.title)).trim(),
             genre: form.genre,
             coverUrl: form.coverUrl.trim() || undefined,
-            timeframe: form.timeframe,
+            // Ohne Turnier-Auswahl lässt sich hier nichts Neues anlegen; der
+            // Picker kommt mit /control (PROJEKT.md §2). Bearbeiten geht.
+            tournamentId: game?.tournamentId ?? '',
             pinned: game?.pinned ?? false,
+            weight: game?.weight ?? 1,
+            boardOrder: game?.boardOrder ?? 0,
+            status: game?.status ?? 'upcoming',
             primaryMetric: {
                 label: form.metricLabel.trim(),
                 key: form.metricKey.trim() || slugify(form.metricLabel),
@@ -166,20 +167,6 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                             {GENRES.map((genre) => (
                                 <option key={genre} value={genre}>
                                     {genre}
-                                </option>
-                            ))}
-                        </select>
-                    </Field>
-
-                    <Field label="Zeitraum" error={errors.timeframe}>
-                        <select
-                            className={inputClass}
-                            value={form.timeframe}
-                            onChange={(e) => set('timeframe')(e.target.value)}
-                        >
-                            {TIMEFRAMES.map((timeframe) => (
-                                <option key={timeframe} value={timeframe}>
-                                    {timeframe.replace('_', ' ')}
                                 </option>
                             ))}
                         </select>

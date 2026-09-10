@@ -12,8 +12,14 @@ type ScoreQuery = { gameId?: string; playerId?: string };
 
 /** recordedAt kommt als Date aus Mongo, der Vertrag verlangt ISO-String. */
 const toRaw = (doc: { toJSON: () => unknown }): RawScore => {
-    const json = asApi<RawScore>(doc);
-    return { ...json, recordedAt: new Date(json.recordedAt).toISOString() };
+    const json = asApi<Omit<RawScore, 'entrantId'>>(doc);
+    return {
+        ...json,
+        // Genau eine der beiden IDs ist gesetzt — dafür sorgen Zod-Refine und
+        // Mongoose-Validator. Der Fallback existiert nur für den Typ.
+        entrantId: json.playerId ?? json.teamId ?? '',
+        recordedAt: new Date(json.recordedAt).toISOString(),
+    };
 };
 
 export const listScores = async (filter: ScoreQuery): Promise<RawScore[]> => {
@@ -61,8 +67,11 @@ export const playerHistory = async (
         const game = doc.gameId;
         return {
             id: doc._id.toString(),
+            tournamentId: doc.tournamentId.toString(),
             gameId: game?._id.toString() ?? '',
-            playerId: doc.playerId.toString(),
+            entrantType: doc.entrantType,
+            playerId: doc.playerId?.toString(),
+            teamId: doc.teamId?.toString(),
             primaryValue: doc.primaryValue,
             secondaryValues: doc.secondaryValues
                 ? Object.fromEntries(doc.secondaryValues)

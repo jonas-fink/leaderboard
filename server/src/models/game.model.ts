@@ -18,10 +18,14 @@ const metricConfigSchema = new Schema(
 
 const gameSchema = new Schema(
     {
+        tournamentId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Tournament',
+            required: true,
+        },
         slug: {
             type: String,
             required: true,
-            unique: true,
             match: /^[a-z0-9-]+$/,
         },
         title: { type: String, required: true, maxlength: 100 },
@@ -33,15 +37,22 @@ const gameSchema = new Schema(
         coverUrl: String,
         primaryMetric: { type: metricConfigSchema, required: true },
         secondaryMetrics: { type: [metricConfigSchema], default: undefined },
-        timeframe: {
-            type: String,
-            enum: ['all_time', 'monthly', 'weekly', 'season'],
-            default: 'all_time',
-        },
-        // Steuert, welche Games auf dem Dashboard als Chart erscheinen.
+        // Gewichtungsfaktor der Disziplin — ein Finale zählt z.B. doppelt.
+        weight: { type: Number, default: 1, min: 0 },
+        // Steuert, welche Games auf dem Board erscheinen.
         pinned: { type: Boolean, default: false },
+        boardOrder: { type: Number, default: 0 },
+        status: {
+            type: String,
+            enum: ['upcoming', 'running', 'finished'],
+            default: 'upcoming',
+        },
     },
     { timestamps: true, toJSON: toJSONOptions },
 );
+
+// Der Slug ist nur innerhalb eines Turniers eindeutig — dasselbe Spiel darf
+// beim nächsten Event wieder "mario-kart" heißen.
+gameSchema.index({ tournamentId: 1, slug: 1 }, { unique: true });
 
 export const Game = model('Game', gameSchema);

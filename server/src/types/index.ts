@@ -2,6 +2,7 @@ import type {
     AnnouncementType,
     BoardGameEntry,
     StandingsEntry,
+    TournamentMode,
 } from '#schemas';
 
 export type {
@@ -10,7 +11,6 @@ export type {
     MetricConfig,
     MetricFormatter,
     SortOrder,
-    Timeframe,
     SubmitScoreInput,
     LeaderboardEntry,
     LeaderboardChartData,
@@ -35,8 +35,16 @@ export type {
 /** Ein Score, wie er die DB verlässt — flach, IDs als Strings. */
 export type RawScore = {
     id: string;
+    tournamentId: string;
     gameId: string;
-    playerId: string;
+    entrantType: TournamentMode;
+    /**
+     * Spieler- oder Team-ID, je nach entrantType. Der Schlüssel, über den die
+     * Rangliste gruppiert — sonst fielen alle Team-Scores in einen Topf.
+     */
+    entrantId: string;
+    playerId?: string;
+    teamId?: string;
     primaryValue: number;
     secondaryValues?: Record<string, number>;
     metadata?: Record<string, string | number | boolean>;

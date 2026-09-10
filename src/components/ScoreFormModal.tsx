@@ -69,7 +69,13 @@ export const ScoreFormModal = ({
 
         setError(null);
         submitScore.mutate(
-            { gameId: game.id, playerId, primaryValue },
+            {
+                tournamentId: game.tournamentId,
+                gameId: game.id,
+                entrantType: 'player',
+                playerId,
+                primaryValue,
+            },
             {
                 onSuccess: () => {
                     setValue('');

@@ -128,9 +128,13 @@ export const useSubmitScore = () => {
         mutationFn: (input: SubmitScoreInput) => api.submitScore(input),
         onSuccess: (_score, input) => {
             qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
-            qc.invalidateQueries({
-                queryKey: queryKeys.playerStats(input.playerId),
-            });
+            // Team-Scores haben keine playerId — dann gibt es auch keine
+            // Spielerstatistik, die veralten könnte.
+            if (input.playerId) {
+                qc.invalidateQueries({
+                    queryKey: queryKeys.playerStats(input.playerId),
+                });
+            }
         },
     });
 };

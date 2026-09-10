@@ -3,10 +3,13 @@ import assert from 'node:assert/strict';
 import { rankScores } from '#services/rank';
 import type { RawScore } from '#types';
 
-const score = (playerId: string, primaryValue: number): RawScore => ({
-    id: `${playerId}-${primaryValue}`,
+const score = (entrantId: string, primaryValue: number): RawScore => ({
+    id: `${entrantId}-${primaryValue}`,
+    tournamentId: 't1',
     gameId: 'g1',
-    playerId,
+    entrantType: 'player',
+    entrantId,
+    playerId: entrantId,
     primaryValue,
     recordedAt: '2026-01-01T00:00:00.000Z',
 });
@@ -17,7 +20,7 @@ test('DESC: größter Wert führt', () => {
         'DESC',
     );
     assert.deepEqual(
-        ranked.map((e) => [e.playerId, e.rank]),
+        ranked.map((e) => [e.entrantId, e.rank]),
         [
             ['alice', 1],
             ['bob', 2],
@@ -32,7 +35,7 @@ test('ASC: kleinster Wert führt (Rundenzeit)', () => {
         'ASC',
     );
     assert.deepEqual(
-        ranked.map((e) => [e.playerId, e.rank]),
+        ranked.map((e) => [e.entrantId, e.rank]),
         [
             ['john', 1],
             ['bob', 2],
@@ -41,12 +44,12 @@ test('ASC: kleinster Wert führt (Rundenzeit)', () => {
     );
 });
 
-test('nur der beste Score je Spieler zählt, die Historie bleibt unangetastet', () => {
+test('nur der beste Score je Teilnehmer zählt, die Historie bleibt unangetastet', () => {
     const entries = [score('alice', 5), score('alice', 12), score('bob', 9)];
     const ranked = rankScores(entries, 'DESC');
 
-    assert.equal(ranked.length, 2, 'ein Eintrag pro Spieler');
-    assert.equal(ranked[0]!.playerId, 'alice');
+    assert.equal(ranked.length, 2, 'ein Eintrag pro Teilnehmer');
+    assert.equal(ranked[0]!.entrantId, 'alice');
     assert.equal(ranked[0]!.primaryValue, 12);
     assert.equal(entries.length, 3, 'Eingabe wird nicht mutiert');
 });
@@ -69,4 +72,28 @@ test('Gleichstand teilt den Rang, der Folgerang wird übersprungen', () => {
 
 test('leere Eingabe ergibt leere Rangliste', () => {
     assert.deepEqual(rankScores([], 'DESC'), []);
+});
+
+test('ein Team wird über dieselbe Rangliste gewertet wie ein Spieler', () => {
+    // entrantId ist der Schlüssel, nicht playerId — sonst fielen alle
+    // Team-Scores in denselben Topf.
+    const team = (entrantId: string, primaryValue: number): RawScore => ({
+        id: `${entrantId}-${primaryValue}`,
+        tournamentId: 't1',
+        gameId: 'g1',
+        entrantType: 'team',
+        entrantId,
+        teamId: entrantId,
+        primaryValue,
+        recordedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    const ranked = rankScores([team('rot', 9), team('blau', 12)], 'DESC');
+    assert.deepEqual(
+        ranked.map((e) => [e.entrantId, e.rank]),
+        [
+            ['blau', 1],
+            ['rot', 2],
+        ],
+    );
 });

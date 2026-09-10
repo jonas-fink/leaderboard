@@ -8,12 +8,14 @@ export const MetricFormatterSchema = z.enum([
     'decimal',
     'currency',
 ]);
-export const TimeframeSchema = z.enum([
-    'all_time',
-    'monthly',
-    'weekly',
-    'season',
+export const TournamentModeSchema = z.enum(['player', 'team']);
+export const TournamentStatusSchema = z.enum([
+    'draft',
+    'live',
+    'finished',
+    'archived',
 ]);
+export const GameStatusSchema = z.enum(['upcoming', 'running', 'finished']);
 
 // Konfiguration einzelner Metriken
 export const MetricConfigSchema = z.object({
@@ -30,6 +32,7 @@ export const MetricConfigSchema = z.object({
  * z.B. pinned still auf false zurücksetzen, sobald man nur das Cover ändert.
  */
 const GameFields = z.object({
+    tournamentId: z.string().min(1),
     slug: z
         .string()
         .regex(
@@ -41,12 +44,16 @@ const GameFields = z.object({
     coverUrl: z.url().optional(),
     primaryMetric: MetricConfigSchema,
     secondaryMetrics: z.array(MetricConfigSchema).optional(),
-    timeframe: TimeframeSchema,
-    // Steuert, welche Games auf dem Dashboard als Chart erscheinen.
+    // Gewichtungsfaktor der Disziplin — ein Finale zählt zum Beispiel doppelt.
+    weight: z.number().positive(),
+    // Steuert, welche Games auf dem Board erscheinen.
     pinned: z.boolean(),
+    // Reihenfolge in der Board-Rotation.
+    boardOrder: z.number().int().nonnegative(),
+    status: GameStatusSchema,
 });
 
-// Game Schema (Antwort — Server liefert timeframe und pinned immer mit)
+// Game Schema (Antwort — der Server liefert die Defaults immer mit)
 export const GameSchema = GameFields.extend({ id: z.string().min(1) });
 
 // Player Schema
@@ -57,10 +64,18 @@ export const PlayerSchema = z.object({
     countryCode: z.string().length(2).toUpperCase().optional(),
 });
 
-// Score-Submit Schema (für POST-Requests /api/scores)
-export const SubmitScoreSchema = z.object({
+/**
+ * Score-Felder. `tournamentId` ist gegenüber dem Game denormalisiert, damit
+ * Turnierabfragen ohne Join auskommen. `entrantType` ist gegenüber dem Turnier
+ * redundant, macht den Score aber selbsttragend — die Wertungsfunktionen
+ * müssen dafür nichts nachladen.
+ */
+const ScoreFields = z.object({
+    tournamentId: z.string().min(1),
     gameId: z.string().min(1),
-    playerId: z.string().min(1),
+    entrantType: TournamentModeSchema,
+    playerId: z.string().min(1).optional(),
+    teamId: z.string().min(1).optional(),
     primaryValue: z.number().nonnegative(),
     secondaryValues: z.record(z.string(), z.number()).optional(),
     metadata: z
@@ -68,8 +83,24 @@ export const SubmitScoreSchema = z.object({
         .optional(),
 });
 
+/**
+ * Genau die zu `entrantType` passende ID ist gesetzt. Erzwungen wird das hier
+ * und im Mongoose-Validator — kein Controller und kein Service prüft es noch
+ * einmal nach.
+ */
+const hasMatchingEntrant = (score: z.infer<typeof ScoreFields>): boolean =>
+    score.entrantType === 'player'
+        ? score.playerId !== undefined && score.teamId === undefined
+        : score.teamId !== undefined && score.playerId === undefined;
+
+// Score-Submit Schema (für POST-Requests /api/scores)
+export const SubmitScoreSchema = ScoreFields.refine(
+    hasMatchingEntrant,
+    'Zu entrantType gehört genau eine ID: playerId oder teamId',
+);
+
 // Leaderboard-Eintrag (vollständig mit Rang & Timestamp)
-export const LeaderboardEntrySchema = SubmitScoreSchema.extend({
+export const LeaderboardEntrySchema = ScoreFields.extend({
     id: z.string().min(1),
     player: PlayerSchema,
     rank: z.number().int().positive(),
@@ -79,14 +110,13 @@ export const LeaderboardEntrySchema = SubmitScoreSchema.extend({
 // Dashboard Aggregation Schema (Response für /api/leaderboard/:gameSlug)
 export const LeaderboardChartDataSchema = z.object({
     game: GameSchema,
-    timeframe: TimeframeSchema,
     totalParticipants: z.number().int().nonnegative(),
     topEntries: z.array(LeaderboardEntrySchema),
     userEntry: LeaderboardEntrySchema.optional(),
 });
 
 // Roher Score-Eintrag inkl. Game-Titel (Historie im Spieler-Modal)
-export const ScoreRecordSchema = SubmitScoreSchema.extend({
+export const ScoreRecordSchema = ScoreFields.extend({
     id: z.string().min(1),
     recordedAt: z.iso.datetime(),
     gameTitle: z.string().optional(),
@@ -109,22 +139,28 @@ export const PlayerStatsSchema = z.object({
 
 // Input-Schemas: aus den Entity-Schemas abgeleitet, nicht neu geschrieben.
 export const CreateGameSchema = GameFields.extend({
-    timeframe: TimeframeSchema.default('all_time'),
+    weight: z.number().positive().default(1),
     pinned: z.boolean().default(false),
+    boardOrder: z.number().int().nonnegative().default(0),
+    status: GameStatusSchema.default('upcoming'),
 });
 /** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
 export const UpdateGameSchema = GameFields.partial();
 export const CreatePlayerSchema = PlayerSchema.omit({ id: true });
 export const UpdatePlayerSchema = CreatePlayerSchema.partial();
-export const UpdateScoreSchema = SubmitScoreSchema.omit({
+/** Ein Score lässt sich korrigieren, aber nicht auf einen anderen Teilnehmer
+ * oder in eine andere Disziplin umhängen. */
+export const UpdateScoreSchema = ScoreFields.omit({
+    tournamentId: true,
     gameId: true,
+    entrantType: true,
     playerId: true,
+    teamId: true,
 }).partial();
 
 // Type Exports via Inference
 export type SortOrder = z.infer<typeof SortOrderSchema>;
 export type MetricFormatter = z.infer<typeof MetricFormatterSchema>;
-export type Timeframe = z.infer<typeof TimeframeSchema>;
 export type MetricConfig = z.infer<typeof MetricConfigSchema>;
 export type Game = z.infer<typeof GameSchema>;
 export type Player = z.infer<typeof PlayerSchema>;
@@ -142,18 +178,6 @@ export type UpdateScoreInput = z.infer<typeof UpdateScoreSchema>;
 // ---------------------------------------------------------------------------
 // Board-Vertrag — Payload für board:update und event:announce (PROJEKT.md §5)
 // ---------------------------------------------------------------------------
-
-// Beide Enums werden hier gebraucht, bevor Tournament und Game umgebaut sind.
-// Sie stehen absichtlich schon eigenständig, damit die Entity-Schemas sie
-// später referenzieren statt sie ein zweites Mal zu schreiben.
-export const TournamentModeSchema = z.enum(['player', 'team']);
-export const TournamentStatusSchema = z.enum([
-    'draft',
-    'live',
-    'finished',
-    'archived',
-]);
-export const GameStatusSchema = z.enum(['upcoming', 'running', 'finished']);
 
 /**
  * Ein Teilnehmer in der Board-Darstellung — Spieler oder Team, bereits

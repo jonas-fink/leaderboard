@@ -17,6 +17,58 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — Game- und Score-Umbau
+
+**Gebaut**
+
+- `shared/schemas.ts`: Game bekommt `tournamentId`, `weight`, `boardOrder`,
+  `status` und verliert `timeframe`; `TimeframeSchema` ist ersatzlos weg.
+  Score wird polymorph (`ScoreFields` + `.refine()`), bekommt
+  `tournamentId` und `entrantType`, `playerId` wird optional.
+- Modelle: beide Felder-Sätze gespiegelt, Slug nur noch je Turnier eindeutig,
+  die vier Indizes aus §3, Mongoose-Validator für den polymorphen Score.
+- `rank.ts` von `playerId` auf `entrantId` verallgemeinert, Tests zuerst.
+- `leaderboard.service.ts`, `score.service.ts`, `#types` nachgezogen.
+- Client: `GameCard`, `LeaderChartCard`, `GameFormModal`, `ScoreFormModal`,
+  `hooks/index.ts`.
+
+**Entschieden**
+
+- **`rank.ts` musste mit.** `RawScore.playerId` wird optional, damit bricht
+  die Gruppierung — §12 sieht die Verallgemeinerung ohnehin vor. `RawScore`
+  trägt jetzt ein abgeleitetes `entrantId` (`playerId ?? teamId`), das der
+  Score-Service an der DB-Grenze setzt. Die Rangliste ist damit für Spieler-
+  und Team-Turniere dieselbe Funktion.
+- **Die Ableitungen hängen an `ScoreFields`, nicht an `SubmitScoreSchema`.**
+  `.refine()` liefert kein `ZodObject` mehr, auf dem `.extend()` existiert;
+  `LeaderboardEntry` und `ScoreRecord` leiten deshalb von den Feldern ab und
+  das Refine sitzt nur auf dem Submit-Schema.
+- **Das Refine prüft die Zuordnung, nicht nur die Anzahl.** Zu
+  `entrantType: 'player'` muss `playerId` gesetzt und `teamId` leer sein —
+  das fängt zusätzlich einen Score, dessen Typ nicht zur ID passt.
+- **`UpdateScoreSchema` lässt nur noch Wert und Zusatzwerte zu.** Ein Score
+  ist korrigierbar, aber nicht auf einen anderen Teilnehmer oder in eine
+  andere Disziplin umhängbar.
+- **Alte UI nur kompilierfähig gehalten** (so entschieden): die
+  Zeitraum-Anzeigen sind raus, `GameFormModal` kann bis `/control` kein neues
+  Game anlegen — `tournamentId` bleibt leer und die Validierung schlägt
+  sichtbar im Formular fehl. Bearbeiten funktioniert weiter.
+  `ScoreFormModal` läuft vollständig, weil `game.tournamentId` sowohl das
+  Turnier als auch `entrantType: 'player'` hergibt.
+- **`as unknown as` im Score-Validator.** Der Hook bekommt das Dokument über
+  `this` und Mongoose typisiert das nicht mit — eine der in KONVENTIONEN §4
+  vorgesehenen Ausnahmen, mit Begründung im Code.
+
+**Offen**
+
+- Mongoose-Modelle für Tournament und Team.
+- Turnier-Picker im Control-Panel, damit Games wieder anlegbar sind.
+- `Player` fehlt noch `displayName` und `avatarSeed` (§12).
+- `content/announcements.de.json` und der Zieher mit Gedächtnis.
+- Der Board-Service, der die vier Rule-Module verkettet.
+
+---
+
 ## 2026-09-10 — Tournament- und Team-Schemas
 
 **Gebaut**

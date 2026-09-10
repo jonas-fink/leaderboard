@@ -37,7 +37,6 @@ export const buildCharts = async (
 
         return {
             game,
-            timeframe: game.timeframe,
             totalParticipants: entries.length,
             topEntries: limit ? entries.slice(0, limit) : entries,
         };

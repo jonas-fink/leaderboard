@@ -1,8 +1,9 @@
 import type { RawScore, RankedScore, SortOrder, Player } from '#types';
 
 /**
- * Reduziert alle Scores eines Games auf den besten Eintrag je Spieler und
- * vergibt Ränge.
+ * Reduziert alle Scores eines Games auf den besten Eintrag je Teilnehmer und
+ * vergibt Ränge. Gruppiert wird über `entrantId` — dieselbe Funktion wertet
+ * damit Spieler- wie Team-Turniere.
  *
  * `sortOrder` entscheidet, was "besser" heißt: bei ASC ist der kleinere Wert
  * besser (Rundenzeit), bei DESC der größere (Tore). Gleichstand teilt sich
@@ -18,9 +19,9 @@ export const rankScores = (
 
     const best = new Map<string, RawScore>();
     for (const entry of entries) {
-        const current = best.get(entry.playerId);
+        const current = best.get(entry.entrantId);
         if (!current || (entry.primaryValue - current.primaryValue) * dir < 0) {
-            best.set(entry.playerId, entry);
+            best.set(entry.entrantId, entry);
         }
     }
 
@@ -44,5 +45,8 @@ export const withPlayers = (
     playerMap: Map<string, Player>,
 ) =>
     ranked
-        .filter((entry) => playerMap.has(entry.playerId))
-        .map((entry) => ({ ...entry, player: playerMap.get(entry.playerId)! }));
+        .filter((entry) => entry.playerId && playerMap.has(entry.playerId))
+        .map((entry) => ({
+            ...entry,
+            player: playerMap.get(entry.playerId!)!,
+        }));
