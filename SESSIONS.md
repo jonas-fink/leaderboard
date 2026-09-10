@@ -17,6 +17,49 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — Payload-Vertrag für board:update und event:announce
+
+**Gebaut**
+
+- `shared/schemas.ts`: `BoardStateSchema`, `AnnouncementSchema`, dazu
+  `RoomJoinSchema`, `TournamentStatusEventSchema` und die getypten
+  Event-Maps `ServerToClientEvents` / `ClientToServerEvents`.
+- Vorgezogen, weil an drei Stellen gebraucht: `TournamentModeSchema`,
+  `TournamentStatusSchema`, `GameStatusSchema`. Die Entity-Schemas von
+  `Tournament` und `Game` referenzieren sie später, statt sie zu wiederholen.
+
+**Entschieden**
+
+- **Ein flacher `StandingsEntry` statt Player | Team.** Das Board rendert in
+  beiden Turniermodi dieselbe Zeile. Der Server entscheidet einmal, was Name,
+  Bild und Farbe sind; der Client verzweigt nie über den Modus. `entrantType`
+  entfällt auf der Leitung — der Modus steht am Turnier im selben Payload.
+- **Game-Einträge verweisen per `entrantId`**, statt Name und Avatar je
+  Disziplin zu wiederholen. Jeder Teilnehmer steht genau einmal im Payload
+  und kann nicht auseinanderlaufen.
+- **`rankCounts: number[]` statt `firstPlaces: number`.** §4.4 vergleicht
+  erste, dann zweite, dann dritte Plätze, und die Siegerehrung braucht den
+  Medaillenspiegel. Ein Array bedient beides; zwei Felder wären Redundanz.
+- **`computedAt` im Board-Zustand.** Das Board pollt zusätzlich alle 30s per
+  REST. Ohne Zeitstempel kann eine langsame Poll-Antwort einen neueren
+  Socket-Zustand überschreiben — ein sichtbar falsches Board.
+- **`BoardGame` zeigt kein `weight`, `boardOrder`, `pinned`.** Reihenfolge ist
+  die Array-Reihenfolge, ungepinnte Games stehen gar nicht drin.
+- **Kein diskriminierter Union für `Announcement`.** Sieben Typen, aber nur
+  `tournament_finished` fällt aus dem Muster; für die Darstellung ist die
+  Unterscheidung egal. Flaches Objekt mit optionalen Feldern.
+- **Keine Tests.** Deklarative Schemas ohne Verzweigung; KONVENTIONEN §7.1
+  führt sie nicht als TDD-pflichtig.
+
+**Offen**
+
+- `GameSchema.pick(...)` in `BoardGameSchema` leitet noch vom Vor-Umbau-Stand
+  ab. Das ist Absicht: verschwindet eines der gepickten Felder beim Umbau,
+  bricht der Typecheck. `timeframe` und `pinned` sind bewusst nicht dabei.
+- `points.ts` und `standings.ts` nach TDD — der Vertrag steht jetzt.
+
+---
+
 ## 2026-09-10 — Housekeeping: Prettier, Test-Glob, Kontextdateien
 
 **Gebaut**

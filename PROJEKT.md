@@ -383,9 +383,9 @@ Cache-Schicht.
 
 - Auflösung und Seitenverhältnis der Leinwand sind unbekannt. Bis das geklärt
   ist, wird strikt auflösungsunabhängig gebaut.
-- Der Payload-Vertrag für `board:update` und `event:announce` ist noch nicht
-  ausformuliert. Er muss vor den Rule-Modulen in `shared/schemas.ts` stehen,
-  sonst bauen `standings.ts` und `announce.ts` auf einer erfundenen Form auf.
+- ~~Der Payload-Vertrag für `board:update` und `event:announce`.~~ Steht seit
+  dem 2026-09-10 in `shared/schemas.ts` (`BoardStateSchema`,
+  `AnnouncementSchema`, Socket-Events).
 - Ob es einen öffentlichen Archivzugang zwischen den Events geben soll, ist
   nicht entschieden.
 
