@@ -46,12 +46,12 @@ leaderboard/
 │   ├── realtime/             Socket.IO-Setup und die einzigen Emits
 │   └── content/              announcements.de.json + Zieher
 └── src/
-    ├── lib/                  api.ts, auth.ts, socket.ts (neu), form.ts
+    ├── lib/                  api.ts, auth.ts, socket.ts, avatar.ts, form.ts
     ├── hooks/                React-Query-Hooks + Query-Keys
     ├── schemas/              Re-Export aus shared/
     ├── components/           wiederverwendbare Bausteine
-    │   ├── board/            (neu) nur für die Leinwand
-    │   └── control/          (neu) nur fürs Eingabe-Panel
+    │   ├── board/            nur für Leinwand und Siegerehrung
+    │   └── control/          nur fürs Eingabe-Panel
     ├── pages/                Routenziele
     ├── layout/               Rahmen
     └── utils/                Formatter
@@ -272,7 +272,11 @@ die Begründung dazu steht bereits als Kommentar im Code.
   über `style={{ '--team': team.colorPrimary }}` gesetzt und über
   `bg-[var(--team)]` verwendet werden.
 - Board-Maße relativ zur Skalierungsvariable `--u`, nie in `px`. `--u` wird
-  einmal auf dem Board-Container per `clamp()` gesetzt.
+  einmal auf `.board` per `clamp()` gesetzt und ist ein Pixel des
+  1600×900-Canvas. Dieselbe Regel setzt dort Tailwinds `--spacing` auf `--u`,
+  deshalb rechnen `w-580` oder `top-130` direkt in Canvas-Pixeln — Zahlen aus
+  dem Entwurf werden unverändert übernommen. Außerhalb von `.board` (also im
+  Control-Panel) gilt weiter die normale Tailwind-Skala.
 - `image-rendering: pixelated` auf allen Sprites, Skalierung nur in ganzen
   Faktoren.
 - Jede Animation prüft `prefers-reduced-motion` und fällt auf Crossfade zurück.

@@ -3,9 +3,8 @@
 Einstiegsdokument. Wer eine neue Session beginnt, liest diese Datei zuerst,
 danach `KONVENTIONEN.md` (Code-Standards) und `SESSIONS.md` (Kurzlog).
 
-Stand: 2026-09-10 · Status: Server ist vollständig — Datenschicht,
-Wertungslogik, Realtime, Zugriffsschutz und Upload. Offen ist die
-Oberfläche, Einzelheiten in §12.
+Stand: 2026-09-10 · Status: Server und Oberflächen stehen — Board,
+Siegerehrung und Control-Panel. Offen sind Feinarbeiten, Einzelheiten in §12.
 
 ---
 
@@ -429,24 +428,35 @@ Routen außer `/auth`: GET, HEAD und OPTIONS gehen durch, alles andere braucht
 das Token. Bildfelder nehmen laut `ImageUrlSchema` eine externe URL **oder**
 einen Pfad unter `/uploads/` — genau das, was der eigene Upload ausgibt.
 
+Die Board-Maße hängen an `--u` — einem Canvas-Pixel des 1600×900-Entwurfs,
+per `clamp()` an die kleinere Viewport-Achse gekoppelt. `.board` setzt
+zusätzlich Tailwinds `--spacing` darauf, sodass jede Zahlen-Utility
+unmittelbar in Canvas-Pixeln rechnet.
+
 ### Als Nächstes
 
-**Oberfläche:** `/board`, `/control`, `/result`. `socket.io-client` liegt
-bereits im Client-`package.json`, der Vite-Proxy leitet `/socket.io`
-inklusive Upgrade und `/uploads` weiter. Token und PIN-Eingabe stehen
-(`lib/auth.ts`, `PinLock`), die Anmeldung wandert mit `/control` an ihren
-richtigen Platz.
+1. **Uploads anschließen.** Der Endpunkt steht, aber kein Formular ruft ihn
+   auf — Avatare und Banner lassen sich noch nicht setzen.
+2. **Die Oberflächen einmal auf der Leinwand ansehen.** Gebaut und
+   typgeprüft sind sie, im Browser gesehen noch nicht.
+3. **Mitglieder am Team** pflegbar machen; `members` existiert im Modell.
+
+### Bedienung
+
+| Weg                                         | Wozu                        |
+| ------------------------------------------- | --------------------------- |
+| `/control`                                  | Wertung eintragen           |
+| `/board/<slug>`                             | Leinwand                    |
+| `/result/<slug>`                            | Siegerehrung                |
+| `npm run seed -- --yes`                     | Beispielturnier             |
+| `npm run tournament:delete -- <slug> --yes` | Turnier samt Anhang löschen |
 
 ### Noch nicht angefasst
 
-- `/control` existiert nicht. Die alte Dashboard-UI (Dashboard, Games,
-  Players, GameDetail) läuft weiter und ist an das Turnier angeschlossen:
-  Games brauchen einen Turnier-Picker im Formular, Scores erben Turnier und
-  `entrantType` vom Game. **Teamwertungen kann sie nicht eintragen** — das
-  Seed-Beispiel läuft deshalb im `player`-Modus.
-- Der Socket verteilt, aber noch hört niemand zu: es gibt keinen Client, der
-  `room:join` schickt.
-- Die PIN-Eingabe sitzt vorerst als Feld in der Navbar der alten Oberfläche.
+- Uploads sind an kein Formular angeschlossen.
+- Team-Mitglieder (`members`) lassen sich über die Oberfläche nicht pflegen.
+- Die alten Formularmodale benutzen noch die auf die neue Palette gemappten
+  Alias-Farben statt der Token direkt.
 
 Bestehendes bleibt bestehen: die REST-Struktur, `toJSONOptions`, die
 Zod-Schemas als geteilte Wahrheit zwischen Client und Server, React Query als

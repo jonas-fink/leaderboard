@@ -21,6 +21,77 @@ die Begründungen zu einzelnen Schritten.
 
 ---
 
+## 2026-09-10 — Die Oberfläche: /board, /result, /control
+
+**Gebaut**
+
+- **Token:** der freigegebene Design-Canvas ist nach `index.css` übersetzt —
+  Palette, Schriften (Silkscreen, Chakra Petch), harte Kanten, Bewegungswerte.
+- **`/board/:slug`** mit `StandingsPanel`, `GamePanel`, `AnnouncementBanner`,
+  `PixelSprite`, dazu `useBoard` (REST + 30s-Poll + Socket) und `useRotation`.
+- **`/result/:slug`**: Podium, gestapelte Balken je Disziplin, Sieger je Spiel.
+  Der Board-Endpunkt kennt dafür `?all=1`.
+- **`/control`** als Schale mit Reitern: Wertung eintragen und zurücknehmen,
+  Disziplinen, Teams, Spieler, Turnier. Team-CRUD, Turnier anlegen und
+  Status schalten sind neu; die alte Dashboard-Seite ist ersetzt.
+- `npm run tournament:delete -- <slug> --yes`.
+
+**Entschieden**
+
+- **`--u` statt Skalierungs-JavaScript.** Der Canvas ist auf 1600×900
+  gezeichnet; `--u: clamp(0px, 0.0625vw, 0.11111vh)` ist genau ein
+  Canvas-Pixel. Weil `.board` zusätzlich Tailwinds `--spacing` darauf setzt,
+  rechnet jede Zahlen-Utility (`w-580`, `top-130`) unmittelbar in
+  Canvas-Pixel — kein ResizeObserver, keine Umrechnung von Hand.
+- **Die alten Farbnamen bleiben als Alias** auf die neue Palette, bis die
+  letzten Control-Komponenten umgebaut sind. Sie an zwanzig Stellen
+  gleichzeitig zu ersetzen wäre ein zweiter Umbau im selben Schritt gewesen.
+- **Keine Rangvorschau im Eingabeformular.** Sie wäre eine zweite
+  Rechenquelle neben dem Server (KONVENTIONEN §8); der Platz steht eine
+  Sekunde später in der Liste daneben.
+- **`useSyncExternalStore` für den Verbindungszustand.** Er gehört dem
+  Socket, nicht React — die erste Fassung spiegelte ihn per `setState` im
+  Effekt und der Linter hat zu Recht gemeckert.
+- **Toasts über eine Pumpe statt Timer je Toast.** Ein `setTimeout` im
+  Effect-Cleanup wird bei jeder Zustandsänderung abgeräumt; der erste Toast
+  wäre stehen geblieben. Jetzt eine reine Funktion und ein Takt.
+- **Das Turnier wird nicht ausgewählt, sondern gefunden** — das laufende,
+  sonst das neueste. Ein Umschalter wäre ein Bedienelement, das bei einem
+  Event pro Abend niemand anfasst; als `ponytail:` vermerkt.
+- **Turnier löschen als Skript**, nicht als Route — die Begründung stand
+  schon in §9, das Skript fehlte bis jetzt.
+
+**Gefunden und behoben**
+
+- **`Game` trug noch einen globalen `slug_1 UNIQUE`** aus der Zeit vor dem
+  Turnier-Umbau. Mongoose legt fehlende Indizes an, entfernt aber keine
+  überzähligen — zwei Turniere hätten deshalb nie beide ein "Mario Kart"
+  haben können, und das Anlegen scheiterte im Test mit 409. `connectDb` ruft
+  jetzt `syncIndexes()`, das den veralteten Index abräumt und die Schemas zur
+  einzigen Wahrheit macht. Beim ersten Start protokolliert:
+  `Veraltete Indizes entfernt — Game: slug_1`.
+
+**Geprüft** (gegen die laufende API)
+
+- Teamturnier angelegt, zwei Teams, eine Disziplin mit demselben Slug wie im
+  anderen Turnier (nach dem Index-Fix erlaubt), zwei Teamwertungen: Board
+  liefert `mode: team`, Rangfolge 1/2, Punkte 10/8, Teamfarbe und Seed dabei.
+  `?all=1` liefert die Disziplinen für die Siegerehrung.
+- Das Löschskript ohne `--yes` warnt mit Datenbank und Host, mit `--yes`
+  räumt es ab; das Seed-Turnier blieb unversehrt.
+- Board-Utilities im gebauten CSS geprüft (`w-580`, `h-690`, `left-680` …) —
+  alle über `var(--spacing)`, außerhalb des Boards bleibt es bei `.25rem`.
+
+**Offen**
+
+- **Die Oberflächen sind nicht im Browser gesehen.** Die Chrome-Extension war
+  in dieser Sitzung nicht verbunden; geprüft sind Typecheck, Lint, Build und
+  das erzeugte CSS, nicht die Optik.
+- Upload ist serverseitig fertig, aber an kein Formular angeschlossen —
+  Avatare und Banner lassen sich noch nicht über die Oberfläche setzen.
+- `GameFormModal` und `PlayerFormModal` benutzen noch die Alias-Farben.
+- Teams haben kein Mitglieder-Feld in der Oberfläche.
+
 ## 2026-09-10 — Alles über den Funnel: Leserouten zu, Anmeldebremse
 
 **Anlass**
