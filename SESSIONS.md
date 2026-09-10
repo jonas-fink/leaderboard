@@ -17,6 +17,44 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — Tournament- und Team-Schemas
+
+**Gebaut**
+
+- `shared/schemas.ts`: `TournamentSchema`, `TeamSchema` samt Create- und
+  Update-Varianten nach den Ableitungsregeln aus KONVENTIONEN §5.
+- `server/src/schemas/schemas.check.ts`: vier Prüfungen für die Defaults und
+  die Monotonie der Punktetabelle.
+
+**Entschieden**
+
+- **Nur Tournament und Team, kein Game- und Score-Umbau.** `timeframe`
+  entfällt laut §12 ersatzlos, hängt aber an `LeaderboardChartDataSchema`,
+  `GameFormModal`, der Leaderboard-Query und der Games-Seite. Schema-only
+  bräche dort den Typecheck; der Umbau geht nur zusammen mit dem abhängigen
+  Code und wird ein eigener Schritt. Tournament und Team sind rein additiv
+  und brechen nichts.
+- **`pointsTable` bekommt das `.refine()` auf monotones Fallen.** Damit ist
+  der offene Punkt aus dem points.ts-Schritt erledigt: die Annahme, auf die
+  sich `placementPoints` verlässt, wird an der Eingabegrenze erzwungen statt
+  im Rule-Modul nachgeprüft. Gleiche Werte hintereinander sind erlaubt, die
+  Garantie hält auch dann.
+- **`avatarSeed` fehlt in `CreateTeamSchema`.** Der Seed wird deterministisch
+  aus dem Namen abgeleitet, das ist Sache des Service — nicht des Aufrufers.
+- **Die Schemas stehen hinter dem Board-Vertrag in der Datei**, weil sie
+  `TournamentModeSchema` und `TournamentStatusSchema` von dort mitbenutzen.
+  Genau dafür wurden die Enums damals vorgezogen.
+
+**Offen**
+
+- Game- und Score-Umbau samt abhängigem Code: `+tournamentId`, `+weight`,
+  `+boardOrder`, `+status`, `−timeframe`; Score polymorph mit `.refine()`.
+- Mongoose-Modelle für Tournament und Team.
+- `content/announcements.de.json` und der Zieher mit Gedächtnis für `pick`.
+- Der Board-Service, der die vier Rule-Module verkettet.
+
+---
+
 ## 2026-09-10 — announce.ts: Board-Diff zu Toast-Ereignissen
 
 **Gebaut**

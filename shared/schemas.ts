@@ -293,3 +293,90 @@ export type ServerToClientEvents = {
 export type ClientToServerEvents = {
     'room:join': (payload: RoomJoin) => void;
 };
+
+// ---------------------------------------------------------------------------
+// Turnier und Team (PROJEKT.md §3)
+// Stehen hinter dem Board-Vertrag, weil sie dessen Enums mitbenutzen.
+// ---------------------------------------------------------------------------
+
+/**
+ * Turnier-Felder ohne Defaults — siehe die Begründung bei GameFields.
+ */
+const TournamentFields = z.object({
+    slug: z
+        .string()
+        .regex(
+            /^[a-z0-9-]+$/,
+            'Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten',
+        ),
+    title: z.string().min(1).max(100),
+    description: z.string().max(500).optional(),
+    // Gilt für ALLE Games des Turniers: entweder Spieler gegen Spieler oder
+    // Team gegen Team. Gemischte Turniere gibt es bewusst nicht.
+    mode: TournamentModeSchema,
+    status: TournamentStatusSchema,
+    startsAt: z.iso.datetime(),
+    endsAt: z.iso.datetime().optional(),
+    // Index 0 = Platz 1. Muss monoton fallen, sonst könnte ein schlechterer
+    // Rang mehr Punkte einbringen als ein besserer — points.ts verlässt sich
+    // darauf und prüft es bewusst nicht noch einmal nach.
+    pointsTable: z
+        .array(z.number().nonnegative())
+        .min(1)
+        .refine(
+            (table) => table.every((v, i) => i === 0 || v <= table[i - 1]!),
+            'Die Punktetabelle muss von Platz 1 an fallen',
+        ),
+    // Einziger Wert bis auf Weiteres; das Feld existiert für spätere Varianten.
+    tieBreak: z.enum(['olympic']),
+    bannerUrl: z.url().optional(),
+});
+
+export const TournamentSchema = TournamentFields.extend({
+    id: z.string().min(1),
+});
+
+/**
+ * Team-Felder. Teams gehören zu genau einem Turnier — dieselbe Person kann
+ * beim nächsten Event in einem anderen Team antreten, ohne dass die Historie
+ * falsch wird.
+ */
+const TeamFields = z.object({
+    tournamentId: z.string().min(1),
+    name: z.string().min(1).max(50),
+    colorPrimary: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/, 'Farbe muss ein Hex-Wert wie #ff2d9b sein'),
+    colorSecondary: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/, 'Farbe muss ein Hex-Wert wie #ff2d9b sein')
+        .optional(),
+    bannerUrl: z.url().optional(),
+    avatarSeed: z.string().min(1),
+    members: z.array(z.string().min(1)),
+});
+
+export const TeamSchema = TeamFields.extend({ id: z.string().min(1) });
+
+export const CreateTournamentSchema = TournamentFields.extend({
+    status: TournamentStatusSchema.default('draft'),
+    pointsTable: TournamentFields.shape.pointsTable.default([
+        10, 8, 6, 5, 4, 3, 2, 1,
+    ]),
+    tieBreak: z.enum(['olympic']).default('olympic'),
+});
+/** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
+export const UpdateTournamentSchema = TournamentFields.partial();
+
+/** avatarSeed leitet der Service deterministisch aus dem Namen ab. */
+export const CreateTeamSchema = TeamFields.omit({ avatarSeed: true }).extend({
+    members: TeamFields.shape.members.default([]),
+});
+export const UpdateTeamSchema = TeamFields.partial();
+
+export type Tournament = z.infer<typeof TournamentSchema>;
+export type Team = z.infer<typeof TeamSchema>;
+export type CreateTournamentInput = z.infer<typeof CreateTournamentSchema>;
+export type UpdateTournamentInput = z.infer<typeof UpdateTournamentSchema>;
+export type CreateTeamInput = z.infer<typeof CreateTeamSchema>;
+export type UpdateTeamInput = z.infer<typeof UpdateTeamSchema>;
