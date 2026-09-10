@@ -6,6 +6,10 @@ import type {
     CreatePlayerInput,
     UpdatePlayerInput,
     SubmitScoreInput,
+    CreateTournamentInput,
+    UpdateTournamentInput,
+    CreateTeamInput,
+    UpdateTeamInput,
 } from '../schemas';
 
 export const queryKeys = {
@@ -15,6 +19,10 @@ export const queryKeys = {
     leaderboards: ['leaderboard'] as const,
     leaderboard: (slug: string) => ['leaderboard', slug] as const,
     playerStats: (id: string) => ['player-stats', id] as const,
+    board: (slug: string, allGames: boolean) =>
+        ['board', slug, allGames] as const,
+    teams: (tournamentId: string) => ['teams', tournamentId] as const,
+    scores: (tournamentId: string) => ['scores', tournamentId] as const,
 };
 
 // --- Queries -------------------------------------------------------------
@@ -41,6 +49,20 @@ export const useLeaderboard = (slug: string) =>
     useQuery({
         queryKey: queryKeys.leaderboard(slug),
         queryFn: () => api.fetchLeaderboard(slug),
+    });
+
+export const useTeams = (tournamentId: string | undefined) =>
+    useQuery({
+        queryKey: queryKeys.teams(tournamentId ?? ''),
+        queryFn: () => api.fetchTeams(tournamentId!),
+        enabled: Boolean(tournamentId),
+    });
+
+export const useScores = (tournamentId: string | undefined) =>
+    useQuery({
+        queryKey: queryKeys.scores(tournamentId ?? ''),
+        queryFn: () => api.fetchScores(tournamentId!),
+        enabled: Boolean(tournamentId),
     });
 
 export const usePlayerStats = (id: string | null) =>
@@ -142,6 +164,77 @@ export const useSubmitScore = () => {
                     queryKey: queryKeys.playerStats(input.playerId),
                 });
             }
+        },
+    });
+};
+
+// --- Turnier und Team ----------------------------------------------------
+
+export const useCreateTournament = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: CreateTournamentInput) =>
+            api.createTournament(input),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: queryKeys.tournaments }),
+    });
+};
+
+export const useUpdateTournament = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({
+            id,
+            patch,
+        }: {
+            id: string;
+            patch: UpdateTournamentInput;
+        }) => api.updateTournament(id, patch),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: queryKeys.tournaments }),
+    });
+};
+
+export const useCreateTeam = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: CreateTeamInput) => api.createTeam(input),
+        onSuccess: (team) =>
+            qc.invalidateQueries({
+                queryKey: queryKeys.teams(team.tournamentId),
+            }),
+    });
+};
+
+export const useUpdateTeam = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, patch }: { id: string; patch: UpdateTeamInput }) =>
+            api.updateTeam(id, patch),
+        onSuccess: (team) =>
+            qc.invalidateQueries({
+                queryKey: queryKeys.teams(team.tournamentId),
+            }),
+    });
+};
+
+export const useDeleteTeam = (tournamentId: string) => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => api.deleteTeam(id),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: queryKeys.teams(tournamentId) }),
+    });
+};
+
+/** Eine zurückgenommene Wertung rührt die Liste und das Board an. */
+export const useDeleteScore = (tournamentId: string) => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => api.deleteScore(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: queryKeys.scores(tournamentId) });
+            qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
         },
     });
 };

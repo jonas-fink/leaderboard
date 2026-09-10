@@ -1,5 +1,5 @@
 import { MdPushPin, MdOutlinePushPin, MdEdit } from 'react-icons/md';
-import type { Game } from '../schemas';
+import type { Game } from '../../schemas';
 
 interface GameCardProps {
     game: Game;

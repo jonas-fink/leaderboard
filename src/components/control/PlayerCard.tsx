@@ -1,4 +1,4 @@
-import type { Player } from '../schemas';
+import type { Player } from '../../schemas';
 
 interface PlayerCardProps {
     player: Player;

@@ -1,15 +1,15 @@
 import { useState, type FormEvent } from 'react';
 import type { z } from 'zod';
-import { Modal } from './Modal';
-import { Field, FormError } from './form';
+import { Modal } from '../Modal';
+import { Field, FormError } from '../form';
 import {
     fieldErrors,
     ghostButtonClass,
     inputClass,
     primaryButtonClass,
-} from '../lib/form';
-import { useCreatePlayer, useUpdatePlayer } from '../hooks';
-import { CreatePlayerSchema, type Player } from '../schemas';
+} from '../../lib/form';
+import { useCreatePlayer, useUpdatePlayer } from '../../hooks';
+import { CreatePlayerSchema, type Player } from '../../schemas';
 
 interface PlayerFormModalProps {
     open: boolean;

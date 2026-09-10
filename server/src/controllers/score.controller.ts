@@ -7,14 +7,23 @@ export const getScores: RequestHandler<
     unknown,
     unknown,
     unknown,
-    { gameId?: string; playerId?: string }
+    {
+        tournamentId?: string;
+        gameId?: string;
+        playerId?: string;
+        limit?: string;
+    }
 > = async (req, res) => {
-    const { gameId, playerId } = req.query;
+    const { tournamentId, gameId, playerId, limit } = req.query;
     res.json(
-        await scoreService.listScores({
-            ...(gameId ? { gameId } : {}),
-            ...(playerId ? { playerId } : {}),
-        }),
+        await scoreService.listScores(
+            {
+                ...(tournamentId ? { tournamentId } : {}),
+                ...(gameId ? { gameId } : {}),
+                ...(playerId ? { playerId } : {}),
+            },
+            Number(limit) || 0,
+        ),
     );
 };
 

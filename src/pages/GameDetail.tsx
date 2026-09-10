@@ -12,7 +12,7 @@ const GameDetail = () => {
     return (
         <section className="p-4 md:p-0">
             <Link
-                to="/"
+                to="/control"
                 className="mb-4 inline-block text-sm font-semibold text-ink-mute transition-colors hover:text-arcane-teal"
             >
                 ← Dashboard

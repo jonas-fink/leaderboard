@@ -1,32 +1,20 @@
 import { useState, type SubmitEvent } from 'react';
-import { Modal } from './Modal';
-import { Field, FormError } from './form';
-import { ghostButtonClass, inputClass, primaryButtonClass } from '../lib/form';
-import { usePlayers, useSubmitScore } from '../hooks';
-import type { Game } from '../schemas';
+import { Modal } from '../Modal';
+import { Field, FormError } from '../form';
+import {
+    ghostButtonClass,
+    inputClass,
+    parseTime,
+    primaryButtonClass,
+} from '../../lib/form';
+import { usePlayers, useSubmitScore } from '../../hooks';
+import type { Game } from '../../schemas';
 
 interface ScoreFormModalProps {
     open: boolean;
     onClose: () => void;
     game: Game;
 }
-
-/**
- * time_ms wird als mm:ss.mmm eingegeben — niemand tippt 92450 für 1:32,450.
- * Alle anderen Formate sind einfache Zahlen.
- */
-const parseTime = (input: string): number | null => {
-    const match = input
-        .trim()
-        .match(/^(?:(\d+):)?([0-5]?\d)(?:[.,](\d{1,3}))?$/);
-    if (!match) return null;
-    const [, minutes = '0', seconds, millis = '0'] = match;
-    return (
-        Number(minutes) * 60_000 +
-        Number(seconds) * 1000 +
-        Number(millis.padEnd(3, '0'))
-    );
-};
 
 export const ScoreFormModal = ({
     open,

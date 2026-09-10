@@ -12,7 +12,7 @@ const Dashboard = () => {
 
     // Stabile Referenzen, sonst zieht jeder Render die memoisierten Karten mit.
     const handleViewAll = useCallback(
-        (slug: string) => navigate(`/games/${slug}`),
+        (slug: string) => navigate(`/control/games/${slug}`),
         [navigate],
     );
     const handleSubmitScore = useCallback(
@@ -61,7 +61,7 @@ const Dashboard = () => {
                 {!isLoading && (
                     <button
                         type="button"
-                        onClick={() => navigate('/games')}
+                        onClick={() => navigate('/control/games')}
                         className="flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line text-ink-mute transition-colors hover:border-arcane-teal hover:text-arcane-teal"
                     >
                         <MdOutlineAdd size={48} />

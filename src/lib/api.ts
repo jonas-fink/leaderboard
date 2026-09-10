@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { getToken, setToken, clearToken } from './auth';
 import {
     TournamentSchema,
+    TeamSchema,
     AuthTokenSchema,
     UploadResultSchema,
     GameSchema,
@@ -9,12 +10,17 @@ import {
     PlayerStatsSchema,
     LeaderboardChartDataSchema,
     ScoreRecordSchema,
+    BoardStateSchema,
     type CreateGameInput,
     type UpdateGameInput,
     type CreatePlayerInput,
     type UpdatePlayerInput,
     type SubmitScoreInput,
     type LoginInput,
+    type CreateTournamentInput,
+    type UpdateTournamentInput,
+    type CreateTeamInput,
+    type UpdateTeamInput,
 } from '../schemas';
 
 const BASE = '/api';
@@ -80,10 +86,46 @@ export const uploadImage = async (file: File) => {
     return url;
 };
 
+// --- Board ---------------------------------------------------------------
+
+/**
+ * Der vollständige Board-Zustand. Die einzige Leseroute ohne Token — der
+ * Rechner an der Leinwand kann sich nicht anmelden (PROJEKT.md §9).
+ */
+export const fetchBoard = (slug: string, allGames = false) =>
+    request(`/board/${slug}${allGames ? '?all=1' : ''}`, BoardStateSchema);
+
 // --- Turniere ------------------------------------------------------------
 
 export const fetchTournaments = () =>
     request('/tournaments', TournamentSchema.array());
+
+export const createTournament = (input: CreateTournamentInput) =>
+    request('/tournaments', TournamentSchema, {
+        method: 'POST',
+        ...body(input),
+    });
+
+export const updateTournament = (id: string, patch: UpdateTournamentInput) =>
+    request(`/tournaments/${id}`, TournamentSchema, {
+        method: 'PATCH',
+        ...body(patch),
+    });
+
+// --- Teams ---------------------------------------------------------------
+
+/** Eine turnierübergreifende Teamliste hat keine Bedeutung — siehe §3. */
+export const fetchTeams = (tournamentId: string) =>
+    request(`/teams?tournamentId=${tournamentId}`, TeamSchema.array());
+
+export const createTeam = (input: CreateTeamInput) =>
+    request('/teams', TeamSchema, { method: 'POST', ...body(input) });
+
+export const updateTeam = (id: string, patch: UpdateTeamInput) =>
+    request(`/teams/${id}`, TeamSchema, { method: 'PATCH', ...body(patch) });
+
+export const deleteTeam = (id: string) =>
+    request(`/teams/${id}`, voidSchema, { method: 'DELETE' });
 
 // --- Games ---------------------------------------------------------------
 
@@ -126,6 +168,13 @@ export const fetchLeaderboard = (slug: string) =>
     request(`/leaderboard/${slug}`, LeaderboardChartDataSchema);
 
 // --- Scores --------------------------------------------------------------
+
+/** Die letzten Eintragungen eines Turniers, zum Nachsehen und Zurücknehmen. */
+export const fetchScores = (tournamentId: string, limit = 15) =>
+    request(
+        `/scores?tournamentId=${tournamentId}&limit=${limit}`,
+        ScoreRecordSchema.array(),
+    );
 
 export const submitScore = (input: SubmitScoreInput) =>
     request('/scores', ScoreRecordSchema, { method: 'POST', ...body(input) });

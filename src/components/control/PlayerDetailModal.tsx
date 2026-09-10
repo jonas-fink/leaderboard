@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Modal } from './Modal';
-import { ghostButtonClass, primaryButtonClass } from '../lib/form';
-import { usePlayerStats, useDeletePlayer } from '../hooks';
-import { formatMetricValue } from '../utils';
-import type { Player } from '../schemas';
+import { Modal } from '../Modal';
+import { ghostButtonClass, primaryButtonClass } from '../../lib/form';
+import { usePlayerStats, useDeletePlayer } from '../../hooks';
+import { formatMetricValue } from '../../utils';
+import type { Player } from '../../schemas';
 
 interface PlayerDetailModalProps {
     player: Player | null;

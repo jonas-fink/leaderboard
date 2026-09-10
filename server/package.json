@@ -7,6 +7,7 @@
         "dev": "node --env-file=.env --watch src/index.ts",
         "start": "node --env-file=.env src/index.ts",
         "seed": "node --env-file=.env src/seed.ts",
+        "tournament:delete": "node --env-file=.env src/delete-tournament.ts",
         "test": "node --test 'src/**/*.check.ts'"
     },
     "imports": {

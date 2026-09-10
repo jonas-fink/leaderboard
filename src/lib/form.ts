@@ -17,3 +17,20 @@ export const fieldErrors = (error: ZodError): Record<string, string> =>
     Object.fromEntries(
         error.issues.map((issue) => [issue.path.join('.'), issue.message]),
     );
+
+/**
+ * `time_ms` wird als mm:ss.mmm eingegeben — niemand tippt 92450 für 1:32,450.
+ * Alle anderen Formate sind einfache Zahlen.
+ */
+export const parseTime = (input: string): number | null => {
+    const match = input
+        .trim()
+        .match(/^(?:(\d+):)?([0-5]?\d)(?:[.,](\d{1,3}))?$/);
+    if (!match) return null;
+    const [, minutes = '0', seconds, millis = '0'] = match;
+    return (
+        Number(minutes) * 60_000 +
+        Number(seconds) * 1000 +
+        Number(millis.padEnd(3, '0'))
+    );
+};

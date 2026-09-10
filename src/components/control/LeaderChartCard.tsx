@@ -1,6 +1,9 @@
 import React from 'react';
-import { type LeaderboardChartData, type LeaderboardEntry } from '../schemas';
-import { formatMetricValue } from '../utils';
+import {
+    type LeaderboardChartData,
+    type LeaderboardEntry,
+} from '../../schemas';
+import { formatMetricValue } from '../../utils';
 
 interface LeaderChartCardProps {
     data: LeaderboardChartData;

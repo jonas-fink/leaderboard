@@ -8,7 +8,11 @@ import type {
     MetricConfig,
 } from '#types';
 
-type ScoreQuery = { gameId?: string; playerId?: string };
+type ScoreQuery = {
+    tournamentId?: string;
+    gameId?: string;
+    playerId?: string;
+};
 
 const toRaw = (doc: { toJSON: () => unknown }): RawScore => {
     const json = asApi<Omit<RawScore, 'entrantId'>>(doc);
@@ -20,8 +24,12 @@ const toRaw = (doc: { toJSON: () => unknown }): RawScore => {
     };
 };
 
-export const listScores = async (filter: ScoreQuery): Promise<RawScore[]> => {
-    const docs = await Score.find(filter).sort({ recordedAt: -1 });
+/** Neueste zuerst — /control zeigt die letzten Eintragungen zum Zurücknehmen. */
+export const listScores = async (
+    filter: ScoreQuery,
+    limit = 0,
+): Promise<RawScore[]> => {
+    const docs = await Score.find(filter).sort({ recordedAt: -1 }).limit(limit);
     return docs.map(toRaw);
 };
 

@@ -79,6 +79,11 @@ const loadEntrants = async (
  */
 export const buildBoardState = async (
     tournament: Tournament,
+    /**
+     * Die Siegerehrung zeigt jede Disziplin, auch die ungepinnte — sonst
+     * fehlen Punkte, die in der Gesamtwertung längst stecken.
+     */
+    allGames = false,
 ): Promise<BoardState> => {
     const games = (await listGames(tournament.id)).sort(
         (a, b) => a.boardOrder - b.boardOrder,
@@ -140,7 +145,7 @@ export const buildBoardState = async (
             ...row,
         })),
         games: scored
-            .filter((result) => result.game.pinned)
+            .filter((result) => allGames || result.game.pinned)
             .map(({ game, entries }) => ({
                 game: {
                     id: game.id,
@@ -158,8 +163,11 @@ export const buildBoardState = async (
 };
 
 /** Für den REST-Abruf des Boards — die Leinwand kennt nur den Slug. */
-export const boardBySlug = async (slug: string): Promise<BoardState> =>
-    buildBoardState(await getTournamentBySlug(slug));
+export const boardBySlug = async (
+    slug: string,
+    allGames = false,
+): Promise<BoardState> =>
+    buildBoardState(await getTournamentBySlug(slug), allGames);
 
 /** Für die Realtime-Schicht — die Räume und die Scores tragen die ID. */
 export const boardById = async (id: string): Promise<BoardState> =>
