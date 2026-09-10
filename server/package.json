@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "node --env-file=.env --watch src/index.ts",
         "start": "node --env-file=.env src/index.ts",
-        "test": "node --test src/services/rank.check.ts"
+        "test": "node --test 'src/**/*.check.ts'"
     },
     "imports": {
         "#config": "./src/config/index.ts",
