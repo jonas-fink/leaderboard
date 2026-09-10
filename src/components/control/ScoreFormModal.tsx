@@ -113,14 +113,14 @@ export const ScoreFormModal = ({
                 </Field>
 
                 {players.length === 0 && !isLoading && (
-                    <p className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-soft">
+                    <p className=" border-2 border-line bg-surface-2 px-3 py-2 text-sm text-ink-soft">
                         Es gibt noch keine Spieler — leg zuerst welche unter
                         „Spieler" an.
                     </p>
                 )}
 
                 {error && (
-                    <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    <p className=" border-2 border-orange bg-orange/10 px-3 py-2 text-sm text-orange">
                         {error}
                     </p>
                 )}

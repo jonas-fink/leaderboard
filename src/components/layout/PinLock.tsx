@@ -36,7 +36,7 @@ const PinLock = () => {
                 type="button"
                 title="Abmelden"
                 aria-label="Abmelden"
-                className="cursor-pointer text-logo hover:-translate-y-0.5"
+                className="cursor-pointer text-gold hover:-translate-y-0.5"
                 onClick={() => {
                     clearToken();
                     setUnlocked(false);
@@ -49,7 +49,7 @@ const PinLock = () => {
 
     return (
         <form onSubmit={submit} className="flex items-center gap-2">
-            <IoLockClosedOutline size={32} className="text-logo" />
+            <IoLockClosedOutline size={32} className="text-gold" />
             <input
                 type="password"
                 value={pin}

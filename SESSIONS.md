@@ -21,6 +21,52 @@ die Begründungen zu einzelnen Schritten.
 
 ---
 
+## 2026-09-10 — Im Browser nachgesehen: vier Layoutfehler
+
+**Gebaut**
+
+- Die alten Formularmodale tragen keine Fremdfarben mehr: Alias-Palette,
+  `text-white`, `bg-black/40` und die `red-*`-Stufen sind durch Token
+  ersetzt, Radien auf 0, Rahmen auf 2 px. Der Alias-Block in `index.css` ist
+  damit ersatzlos weg — es referenziert ihn nichts mehr.
+- `ControlDashboard.tsx` gelöscht; die Seite hatte seit dem `/control`-Umbau
+  keinen Aufrufer mehr.
+- Hinweis im TEAMS-Reiter, wenn das Turnier im Einzelmodus läuft.
+
+**Im Browser gefunden und behoben**
+
+1. **Die Gesamtwertung lief unten aus dem Rahmen** — die letzte Zeile war
+   abgeschnitten. Zwei Ursachen übereinander: `StandingsPanel` hatte kein
+   `h-full` und wuchs über den Rahmen hinaus, den die Seite ihm gibt; und die
+   Zeilen beanspruchten mit `h-96` feste Höhe, obwohl die Zahl der Teilnehmer
+   erst am Eventabend feststeht. Jetzt teilen sie sich die Höhe.
+2. **Die "nicht gewertet"-Angabe in der Siegerehrung wurde abgeschnitten.**
+   Die Balkensegmente gaben ihre Breite her, damit der Text daneben passt —
+   bei einem Balkendiagramm genau falsch herum, der Balken log. `shrink-0`
+   auf die Segmente, `min-w-0` auf den Hinweis.
+3. **"vor -1902316 Sekunden"** in den letzten Wertungen. Das Seed-Turnier
+   startet in der Zukunft, und die handgestrickte Zeitrechnung kam damit
+   nicht klar. Ersetzt durch `Intl.RelativeTimeFormat` — das beherrscht
+   Vorzeichen und Plural und zeigt jetzt "in 22 Tagen".
+4. **"1 Disziplinsiege"** auf der Siegerehrung. Plural nachgezogen.
+
+**Geprüft** (Chrome, 1440×900, zwei Tabs)
+
+- Board, Siegerehrung und alle Control-Reiter gesehen.
+- Socket-Durchstich über die Oberfläche: Wertung im Control-Tab eingetragen,
+  das Board sprang ohne Reload — echo von Platz 6 auf 1 mit 24,0, weil das
+  Finale doppelt zählt. Beim zweiten Eintrag kamen die Toasts:
+  "Ab jetzt jagen alle nova" und "Kein Patt mehr — nova ist 1."
+- Anzeigedauer im Vordergrund geprüft: zwei Toasts stehen, der dritte wartet,
+  nach acht Sekunden ist die Fläche leer.
+- Alle Testwertungen wieder gelöscht, Seed-Stand steht unverändert.
+
+**Notiert, nicht behoben**
+
+- **Chrome drosselt Timer in Hintergrund-Tabs** auf einen Lauf pro Minute.
+  Lag das Board hinten, blieben die Toasts minutenlang stehen. Auf dem
+  Beamer ist die Seite die einzige; steht jetzt als Betriebshinweis in §5.
+
 ## 2026-09-10 — Pulsender Statuspunkt, Uploads und Kader
 
 **Gebaut**

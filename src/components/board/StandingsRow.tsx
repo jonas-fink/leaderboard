@@ -27,7 +27,10 @@ const StandingsRow = ({ entry }: StandingsRowProps) => {
         <motion.div
             layout={!calm}
             transition={move}
-            className={`flex h-96 items-center gap-16 border-2 px-16 ${
+            // Die Zeilen teilen sich die Höhe des Panels, statt sie fest zu
+            // beanspruchen: die Zahl der Teilnehmer steht erst am Eventabend
+            // fest, und eine feste Höhe schneidet die letzte Zeile ab.
+            className={`flex min-h-0 shrink grow basis-96 items-center gap-16 border-2 px-16 ${
                 leading
                     ? 'border-gold bg-gold/15 shadow-[0_0_24px_rgb(255_210_63/0.28)]'
                     : 'border-line bg-surface-2/60'

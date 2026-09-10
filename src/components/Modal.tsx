@@ -29,15 +29,15 @@ export const Modal = ({ open, onClose, title, children }: ModalProps) => {
             onClick={(e) => {
                 if (e.target === ref.current) onClose();
             }}
-            className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-surface p-0 text-ink shadow-modal backdrop:bg-header-hextech/70 backdrop:backdrop-blur-sm"
+            className="m-auto w-[min(32rem,calc(100vw-2rem))] border-2 border-line bg-surface p-0 text-ink shadow-modal backdrop:bg-bg/70 backdrop:backdrop-blur-sm"
         >
-            <div className="flex items-center justify-between gap-4 border-b border-line bg-linear-to-br from-header-hextech via-runeterra-sapphire to-midnight-cobal px-5 py-4">
-                <h2 className="text-base font-bold text-white">{title}</h2>
+            <div className="flex items-center justify-between gap-4 border-b-2 border-line bg-surface px-5 py-4">
+                <h2 className="text-base font-bold text-ink">{title}</h2>
                 <button
                     type="button"
                     onClick={onClose}
                     aria-label="Schließen"
-                    className="cursor-pointer rounded-md px-2 text-xl leading-none text-logo transition-colors hover:text-white"
+                    className="cursor-pointer px-2 text-xl leading-none text-gold transition-colors hover:text-ink"
                 >
                     ×
                 </button>

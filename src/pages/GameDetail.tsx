@@ -13,20 +13,18 @@ const GameDetail = () => {
         <section className="p-4 md:p-0">
             <Link
                 to="/control"
-                className="mb-4 inline-block text-sm font-semibold text-ink-mute transition-colors hover:text-arcane-teal"
+                className="mb-4 inline-block text-sm font-semibold text-ink-mute transition-colors hover:text-cyan"
             >
                 ← Dashboard
             </Link>
 
             {error && (
-                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <p className=" border-2 border-orange bg-orange/10 px-4 py-3 text-sm text-orange">
                     {error.message}
                 </p>
             )}
 
-            {isLoading && (
-                <div className="h-96 animate-pulse rounded-2xl bg-surface-2" />
-            )}
+            {isLoading && <div className="h-96 animate-pulse bg-surface-2" />}
 
             {data && (
                 <>

@@ -241,6 +241,11 @@ das kurz offline war, ist mit dem nächsten Ereignis wieder korrekt.
 alle 30 Sekunden per REST als Sicherheitsnetz und zeigt einen dezenten
 Verbindungsindikator in der Ecke.
 
+**Das Board gehört in den Vordergrund.** Chrome drosselt Timer in
+Hintergrund-Tabs auf einen Lauf pro Minute; die Toasts blieben dann minutenlang
+stehen. Auf dem Beamer-Rechner ist die Seite ohnehin die einzige — wer sie
+nebenbei in einem zweiten Tab mitlaufen lässt, sieht Verzögerungen.
+
 ---
 
 ## 6. Board-Layout
@@ -435,10 +440,14 @@ unmittelbar in Canvas-Pixeln rechnet.
 
 ### Als Nächstes
 
-1. **Die Oberflächen einmal auf der Leinwand ansehen.** Gebaut und
-   typgeprüft sind sie, im Browser gesehen noch nicht.
-2. **Die alten Formularmodale** auf die Token umstellen; sie hängen noch an
-   den Alias-Farben der Vorgängerpalette.
+Alle drei Oberflächen sind im Browser gesehen und der Durchstich vom
+Control-Panel über den Socket aufs Board ist geprüft — inklusive Toasts.
+
+1. **Auf dem Zielgerät ansehen.** Geprüft ist 1440×900 im Chrome; die
+   Leinwand des Events hat weder diese Auflösung noch diesen Betrachtungs-
+   abstand.
+2. **Die Sprüche vor dem Event durchgehen** — `content/announcements.de.json`
+   ist genau dafür da.
 
 ### Bedienung
 
@@ -452,8 +461,8 @@ unmittelbar in Canvas-Pixeln rechnet.
 
 ### Noch nicht angefasst
 
-- Die alten Formularmodale benutzen noch die auf die neue Palette gemappten
-  Alias-Farben statt der Token direkt.
+- Team-Banner und Avatare sind hochladbar, aber im Seed nicht gesetzt — das
+  Board zeichnet überall die Sprites aus dem Namen.
 
 Bestehendes bleibt bestehen: die REST-Struktur, `toJSONOptions`, die
 Zod-Schemas als geteilte Wahrheit zwischen Client und Server, React Query als

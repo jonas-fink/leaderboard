@@ -215,7 +215,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                     hint="Hintergrundbild der Karte"
                 />
 
-                <fieldset className="space-y-4 rounded-xl border border-line bg-surface-2/60 p-4">
+                <fieldset className="space-y-4 border-2 border-line bg-surface-2/60 p-4">
                     <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-ink-mute">
                         Wertung
                     </legend>

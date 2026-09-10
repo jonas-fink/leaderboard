@@ -18,13 +18,24 @@ import {
 import { useTournamentContext } from '../hooks/useTournamentContext';
 import { formatMetricValue } from '../utils';
 
-/** Relative Zeit ohne Bibliothek — mehr als Minuten braucht die Liste nicht. */
+/**
+ * Relative Zeit über `Intl.RelativeTimeFormat` statt selbst gerechnet: das
+ * beherrscht Plural und Vorzeichen. Beides ist hier nicht theoretisch — ein
+ * Turnier lässt sich mit Startdatum in der Zukunft anlegen, und eine
+ * handgestrickte Fassung schrieb dann "vor -1902316 Sekunden".
+ */
+const relative = new Intl.RelativeTimeFormat('de', { numeric: 'auto' });
+
 const ago = (iso: string): string => {
-    const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-    if (seconds < 60) return `vor ${seconds} Sekunden`;
-    const minutes = Math.round(seconds / 60);
-    if (minutes < 60) return `vor ${minutes} Minuten`;
-    return `vor ${Math.round(minutes / 60)} Stunden`;
+    const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
+    const distance = Math.abs(seconds);
+
+    if (distance < 60) return relative.format(seconds, 'second');
+    if (distance < 3_600)
+        return relative.format(Math.round(seconds / 60), 'minute');
+    if (distance < 86_400)
+        return relative.format(Math.round(seconds / 3_600), 'hour');
+    return relative.format(Math.round(seconds / 86_400), 'day');
 };
 
 /**

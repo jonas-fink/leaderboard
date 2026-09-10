@@ -51,10 +51,10 @@ export const PlayerDetailModal = ({
                         <img
                             src={player.avatarUrl}
                             alt=""
-                            className="h-16 w-16 rounded-full border border-line object-cover"
+                            className="h-16 w-16 border-2 border-line object-cover"
                         />
                     ) : (
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-runeterra-sapphire to-midnight-cobal text-lg font-bold uppercase text-logo">
+                        <div className="flex h-16 w-16 items-center justify-center bg-surface-2 text-lg font-bold uppercase text-gold">
                             {player.username.slice(0, 2)}
                         </div>
                     )}
@@ -74,7 +74,7 @@ export const PlayerDetailModal = ({
                     {MEDALS.map(({ key, icon, label }) => (
                         <div
                             key={key}
-                            className="rounded-xl border border-line bg-surface-2 p-3 text-center"
+                            className=" border-2 border-line bg-surface-2 p-3 text-center"
                         >
                             <div className="text-2xl">{icon}</div>
                             <div className="text-xl font-bold text-ink">
@@ -106,7 +106,7 @@ export const PlayerDetailModal = ({
                         {stats?.recentScores.map((score) => (
                             <li
                                 key={score.id}
-                                className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2"
+                                className="flex items-center justify-between gap-3 border-2 border-line px-3 py-2"
                             >
                                 <div className="min-w-0">
                                     <p className="truncate text-sm font-medium text-ink">
@@ -131,15 +131,15 @@ export const PlayerDetailModal = ({
                     </ul>
                 </section>
 
-                <div className="flex justify-between gap-2 border-t border-line pt-4">
+                <div className="flex justify-between gap-2 border-t-2 border-line pt-4">
                     <button
                         type="button"
                         onClick={handleDelete}
                         disabled={deletePlayer.isPending}
-                        className={`cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+                        className={`cursor-pointer  border-2 px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
                             confirmDelete
-                                ? 'border-red-600 bg-red-600 text-white hover:bg-red-700'
-                                : 'border-red-200 text-red-700 hover:bg-red-50'
+                                ? 'border-orange bg-orange/80 text-ink hover:bg-orange'
+                                : 'border-orange text-orange hover:bg-orange/10'
                         }`}
                     >
                         {deletePlayer.isPending

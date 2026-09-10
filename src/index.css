@@ -34,19 +34,6 @@
     --shadow-card: 6px 6px 0 rgba(0, 0, 0, 0.45);
     --shadow-float: 8px 8px 0 rgba(0, 0, 0, 0.55);
     --shadow-modal: 10px 10px 0 rgba(0, 0, 0, 0.6);
-
-    /**
-     * Aliase der alten Palette auf die neue. Die Control-Oberfläche stammt
-     * aus der Zeit vor dem Rebranding und benutzt diese Namen an rund zwanzig
-     * Stellen; sie verschwinden mit ihrem Umbau, nicht vorher.
-     */
-    --color-logo: var(--color-gold);
-    --color-header-hextech: var(--color-bg);
-    --color-runeterra-sapphire: var(--color-surface-2);
-    --color-midnight-cobal: var(--color-surface);
-    --color-arcane-teal: var(--color-cyan);
-    --color-accent: var(--color-magenta);
-    --color-accent-soft: var(--color-surface-2);
 }
 
 @theme inline {
@@ -69,14 +56,6 @@
     --shadow-card: var(--shadow-card);
     --shadow-float: var(--shadow-float);
     --shadow-modal: var(--shadow-modal);
-
-    --color-logo: var(--color-logo);
-    --color-header-hextech: var(--color-header-hextech);
-    --color-runeterra-sapphire: var(--color-runeterra-sapphire);
-    --color-midnight-cobal: var(--color-midnight-cobal);
-    --color-arcane-teal: var(--color-arcane-teal);
-    --color-accent: var(--color-accent);
-    --color-accent-soft: var(--color-accent-soft);
 
     /* Silkscreen trägt Display, Ränge und Zahlen; Chakra Petch alles andere. */
     --font-display: 'Silkscreen', 'Courier New', monospace;

@@ -26,7 +26,7 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
     const renderRow = (entry: LeaderboardEntry) => (
         <li
             key={entry.id}
-            className="flex items-center justify-between gap-3 rounded-lg p-2.5 transition-colors hover:bg-surface-2"
+            className="flex items-center justify-between gap-3 p-2.5 transition-colors hover:bg-surface-2"
         >
             <div className="flex min-w-0 items-center gap-3">
                 <span className="w-6 shrink-0 text-center text-xs font-semibold text-ink-mute">
@@ -37,10 +37,10 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
                     <img
                         src={entry.player.avatarUrl}
                         alt=""
-                        className="h-7 w-7 rounded-full border border-line object-cover"
+                        className="h-7 w-7 border-2 border-line object-cover"
                     />
                 ) : (
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-2 text-xs font-bold uppercase text-ink-soft">
+                    <div className="flex h-7 w-7 items-center justify-center bg-surface-2 text-xs font-bold uppercase text-ink-soft">
                         {entry.player.username.slice(0, 2)}
                     </div>
                 )}
@@ -57,7 +57,7 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
     );
 
     return (
-        <article className="flex w-full md:max-w-3xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+        <article className="flex w-full md:max-w-3xl flex-col overflow-hidden border-2 border-line bg-surface shadow-card">
             <header className="relative isolate flex h-32 flex-col justify-end p-4">
                 {game.coverUrl ? (
                     <img
@@ -66,20 +66,20 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
                         className="absolute inset-0 -z-10 h-full w-full object-cover"
                     />
                 ) : (
-                    <div className="absolute inset-0 -z-10 bg-linear-to-br from-header-hextech via-runeterra-sapphire to-midnight-cobal" />
+                    <div className="absolute inset-0 -z-10 bg-surface" />
                 )}
-                <div className="absolute inset-0 -z-10 bg-linear-to-t from-black/85 via-black/55 to-black/25" />
+                <div className="absolute inset-0 -z-10 bg-linear-to-t from-bg/95 via-bg/65 to-bg/30" />
 
                 <div className="flex items-end justify-between gap-2">
                     <div className="min-w-0">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/75">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
                             {game.genre}
                         </span>
-                        <h3 className="truncate text-lg font-bold text-white">
+                        <h3 className="truncate text-lg font-bold text-ink">
                             {game.title}
                         </h3>
                     </div>
-                    <span className="shrink-0 rounded-md border border-white/20 bg-white/15 px-2 py-1 text-xs text-white backdrop-blur-sm">
+                    <span className="shrink-0 border-2 border-line-strong bg-surface-2 px-2 py-1 text-xs text-ink backdrop-blur-sm">
                         {totalParticipants} Spieler
                     </span>
                 </div>
@@ -92,7 +92,7 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
                 </div>
 
                 {topEntries.length === 0 ? (
-                    <p className="flex-1 rounded-lg bg-surface-2 px-3 py-6 text-center text-sm text-ink-mute">
+                    <p className="flex-1 bg-surface-2 px-3 py-6 text-center text-sm text-ink-mute">
                         Noch keine Ergebnisse.
                     </p>
                 ) : (
@@ -107,7 +107,7 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
                     {onSubmitScore && (
                         <button
                             onClick={() => onSubmitScore(data)}
-                            className="flex-1 cursor-pointer rounded-lg bg-linear-to-br from-runeterra-sapphire to-midnight-cobal py-2 text-xs font-semibold text-logo transition-opacity hover:opacity-90"
+                            className="flex-1 cursor-pointer bg-surface-2 py-2 text-xs font-semibold text-gold transition-opacity hover:opacity-90"
                         >
                             Score eintragen
                         </button>
@@ -115,7 +115,7 @@ const LeaderChartCardBase: React.FC<LeaderChartCardProps> = ({
                     {onViewAll && (
                         <button
                             onClick={() => onViewAll(game.slug)}
-                            className="flex-1 cursor-pointer rounded-lg border border-line bg-surface-2 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-line hover:text-ink"
+                            className="flex-1 cursor-pointer border-2 border-line bg-surface-2 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-line hover:text-ink"
                         >
                             Vollständige Rangliste →
                         </button>

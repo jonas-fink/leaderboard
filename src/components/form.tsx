@@ -13,7 +13,7 @@ export const Field = ({ label, error, hint, children }: FieldProps) => (
         <span className={labelClass}>{label}</span>
         {children}
         {error ? (
-            <span className="mt-1 block text-xs font-medium text-red-600">
+            <span className="mt-1 block text-xs font-medium text-orange">
                 {error}
             </span>
         ) : hint ? (
@@ -24,7 +24,7 @@ export const Field = ({ label, error, hint, children }: FieldProps) => (
 
 export const FormError = ({ error }: { error: Error | null }) =>
     error ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className=" border-2 border-orange bg-orange/10 px-3 py-2 text-sm text-orange">
             {error.message}
         </p>
     ) : null;

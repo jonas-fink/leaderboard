@@ -14,6 +14,9 @@ const points = (value: number) => value.toFixed(1).replace('.', ',');
 const wins = (entry: BoardState['standings'][number]) =>
     entry.rankCounts[0] ?? 0;
 
+const winLabel = (count: number) =>
+    `${count} Disziplinsieg${count === 1 ? '' : 'e'}`;
+
 /**
  * Die ersten drei der Gesamtwertung (PROJEKT.md §2). Platz 1 bekommt die
  * ganze Bühne, Zwei und Drei je eine Zeile — auf zehn Meter soll ohne Lesen
@@ -63,7 +66,7 @@ const Podium = ({ standings, played, gameCount }: PodiumProps) => {
                             className="font-semibold uppercase tracking-[0.1em] text-ink-soft"
                             style={{ fontSize: 'calc(var(--u) * 16)' }}
                         >
-                            {wins(first)} Disziplinsiege · in{' '}
+                            {winLabel(wins(first))} · in{' '}
                             {played.get(first.entrantId) ?? 0} von {gameCount}{' '}
                             angetreten
                         </div>
@@ -100,7 +103,7 @@ const Podium = ({ standings, played, gameCount }: PodiumProps) => {
                                 className="font-semibold uppercase tracking-[0.12em] text-ink-mute"
                                 style={{ fontSize: 'calc(var(--u) * 14)' }}
                             >
-                                {wins(entry)} Disziplinsiege
+                                {winLabel(wins(entry))}
                             </div>
                         </div>
                         <div

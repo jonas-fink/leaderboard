@@ -82,6 +82,16 @@ const Teams = () => {
 
     return (
         <div className="flex flex-col gap-6">
+            {tournament.mode === 'player' && (
+                // Der Modus hängt am Turnier und gilt für alle Disziplinen
+                // (§3). Ohne diesen Hinweis legt jemand Teams an, die nie in
+                // die Wertung kommen, und sucht den Fehler woanders.
+                <p className="border-2 border-orange bg-orange/10 px-4 py-3 text-sm text-orange">
+                    „{tournament.title}" läuft im Einzelmodus — gewertet werden
+                    Spieler, nicht Teams. Teams hier bleiben ohne Wirkung.
+                </p>
+            )}
+
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(18rem,1fr))]">
                 {teams.map((team) => (
                     <div

@@ -18,7 +18,7 @@ export const GameCard = ({
     onEdit,
     pinPending,
 }: GameCardProps) => (
-    <article className="group relative isolate flex h-56 flex-col justify-end overflow-hidden rounded-2xl border border-line shadow-card transition-shadow hover:shadow-float">
+    <article className="group relative isolate flex h-56 flex-col justify-end overflow-hidden border-2 border-line shadow-card transition-shadow hover:shadow-float">
         {game.coverUrl ? (
             <img
                 src={game.coverUrl}
@@ -26,16 +26,16 @@ export const GameCard = ({
                 className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
         ) : (
-            <div className="absolute inset-0 -z-10 bg-linear-to-br from-header-hextech via-runeterra-sapphire to-midnight-cobal" />
+            <div className="absolute inset-0 -z-10 bg-surface" />
         )}
-        <div className="absolute inset-0 -z-10 bg-linear-to-t from-black/90 via-black/50 to-black/20" />
+        <div className="absolute inset-0 -z-10 bg-linear-to-t from-bg via-bg/60 to-bg/25" />
 
         <div className="absolute right-3 top-3 flex gap-2">
             <button
                 type="button"
                 onClick={() => onEdit(game)}
                 aria-label={`${game.title} bearbeiten`}
-                className="cursor-pointer rounded-lg border border-white/20 bg-black/40 p-2 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+                className="cursor-pointer border-2 border-line-strong bg-bg/70 p-2 text-ink backdrop-blur-sm transition-colors hover:bg-bg/85"
             >
                 <MdEdit size={16} />
             </button>
@@ -49,10 +49,10 @@ export const GameCard = ({
                         ? `${game.title} vom Dashboard nehmen`
                         : `${game.title} aufs Dashboard pinnen`
                 }
-                className={`cursor-pointer rounded-lg border p-2 backdrop-blur-sm transition-colors disabled:opacity-50 ${
+                className={`cursor-pointer  border-2 p-2 backdrop-blur-sm transition-colors disabled:opacity-50 ${
                     game.pinned
-                        ? 'border-logo/60 bg-logo/25 text-logo'
-                        : 'border-white/20 bg-black/40 text-white hover:bg-black/60'
+                        ? 'border-gold/60 bg-gold/25 text-gold'
+                        : 'border-line-strong bg-bg/70 text-ink hover:bg-bg/85'
                 }`}
             >
                 {game.pinned ? (
@@ -64,13 +64,13 @@ export const GameCard = ({
         </div>
 
         <div className="p-4">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-arcane-teal">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan">
                 {game.genre}
             </span>
-            <h3 className="truncate text-xl font-bold text-white">
+            <h3 className="truncate text-xl font-bold text-ink">
                 {game.title}
             </h3>
-            <p className="mt-1 text-xs text-white/70">
+            <p className="mt-1 text-xs text-ink-soft">
                 {game.primaryMetric.label}
                 {game.pinned && ' · auf dem Dashboard'}
             </p>

@@ -19,16 +19,16 @@ export const PlayerCard = ({ player, onClick }: PlayerCardProps) => (
     <button
         type="button"
         onClick={() => onClick(player)}
-        className="flex cursor-pointer items-center gap-4 rounded-2xl border border-line bg-surface p-4 text-left shadow-card transition-shadow hover:shadow-float"
+        className="flex cursor-pointer items-center gap-4 border-2 border-line bg-surface p-4 text-left shadow-card transition-shadow hover:shadow-float"
     >
         {player.avatarUrl ? (
             <img
                 src={player.avatarUrl}
                 alt=""
-                className="h-12 w-12 shrink-0 rounded-full border border-line object-cover"
+                className="h-12 w-12 shrink-0 border-2 border-line object-cover"
             />
         ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-runeterra-sapphire to-midnight-cobal text-sm font-bold uppercase text-logo">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-surface-2 text-sm font-bold uppercase text-gold">
                 {player.username.slice(0, 2)}
             </div>
         )}

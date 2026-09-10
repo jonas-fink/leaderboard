@@ -89,7 +89,11 @@ const PointsPerGame = ({ board, colorOf }: PointsPerGameProps) => {
                                     .map((segment) => (
                                         <div
                                             key={segment.gameId}
-                                            className="flex items-center justify-center font-display text-bg"
+                                            // shrink-0: die Breite ist die
+                                            // Aussage. Ohne das gäbe das
+                                            // Segment Platz für den Hinweis
+                                            // daneben ab und der Balken löge.
+                                            className="flex shrink-0 items-center justify-center font-display text-bg"
                                             style={{
                                                 width: `${leader === 0 ? 0 : (segment.points / leader) * 100}%`,
                                                 backgroundColor: colorOf(
@@ -103,8 +107,11 @@ const PointsPerGame = ({ board, colorOf }: PointsPerGameProps) => {
                                         </div>
                                     ))}
                                 {missing.length > 0 && (
+                                    // min-w-0, damit der Hinweis schrumpft
+                                    // statt über den Balken hinauszulaufen:
+                                    // beim Führenden ist gar kein Platz mehr.
                                     <div
-                                        className="flex items-center truncate pl-12 font-semibold uppercase tracking-[0.12em] text-ink-mute"
+                                        className="flex min-w-0 items-center truncate pl-12 font-semibold uppercase tracking-[0.12em] text-ink-mute"
                                         style={{
                                             fontSize: 'calc(var(--u) * 12)',
                                         }}

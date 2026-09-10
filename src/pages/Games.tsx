@@ -29,7 +29,7 @@ const Games = () => {
             </header>
 
             {error && (
-                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <p className=" border-2 border-orange bg-orange/10 px-4 py-3 text-sm text-orange">
                     {error.message}
                 </p>
             )}
@@ -39,7 +39,7 @@ const Games = () => {
                     Array.from({ length: 3 }, (_, i) => (
                         <div
                             key={i}
-                            className="h-56 animate-pulse rounded-2xl bg-surface-2"
+                            className="h-56 animate-pulse bg-surface-2"
                         />
                     ))}
 
@@ -60,7 +60,7 @@ const Games = () => {
                     <button
                         type="button"
                         onClick={() => setEditing(undefined)}
-                        className="flex h-56 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line text-ink-mute transition-colors hover:border-arcane-teal hover:text-arcane-teal"
+                        className="flex h-56 cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed border-line text-ink-mute transition-colors hover:border-cyan hover:text-cyan"
                     >
                         <MdOutlineAdd size={40} />
                         <span className="text-sm font-semibold">
