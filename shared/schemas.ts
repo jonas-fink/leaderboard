@@ -56,13 +56,20 @@ const GameFields = z.object({
 // Game Schema (Antwort — der Server liefert die Defaults immer mit)
 export const GameSchema = GameFields.extend({ id: z.string().min(1) });
 
-// Player Schema
-export const PlayerSchema = z.object({
-    id: z.string().min(1),
+/** Spieler-Felder. Global und turnierübergreifend, damit die persönliche
+ * Historie über mehrere Events hinweg erhalten bleibt. */
+const PlayerFields = z.object({
     username: z.string().min(2).max(30),
+    // Anzeigename auf dem Board; fehlt er, steht dort der username.
+    displayName: z.string().min(1).max(30).optional(),
     avatarUrl: z.url().optional(),
+    // Deterministischer Fallback-Sprite, wenn kein Avatar hochgeladen ist.
+    avatarSeed: z.string().min(1),
+    // Bleibt erhalten, wird auf dem Board aber nicht genutzt.
     countryCode: z.string().length(2).toUpperCase().optional(),
 });
+
+export const PlayerSchema = PlayerFields.extend({ id: z.string().min(1) });
 
 /**
  * Score-Felder. `tournamentId` ist gegenüber dem Game denormalisiert, damit
@@ -146,8 +153,10 @@ export const CreateGameSchema = GameFields.extend({
 });
 /** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
 export const UpdateGameSchema = GameFields.partial();
-export const CreatePlayerSchema = PlayerSchema.omit({ id: true });
-export const UpdatePlayerSchema = CreatePlayerSchema.partial();
+/** avatarSeed leitet der Service deterministisch aus dem Namen ab. */
+export const CreatePlayerSchema = PlayerFields.omit({ avatarSeed: true });
+/** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
+export const UpdatePlayerSchema = PlayerFields.partial();
 /** Ein Score lässt sich korrigieren, aber nicht auf einen anderen Teilnehmer
  * oder in eine andere Disziplin umhängen. */
 export const UpdateScoreSchema = ScoreFields.omit({

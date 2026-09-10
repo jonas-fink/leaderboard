@@ -17,6 +17,42 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — Player: displayName und avatarSeed
+
+**Gebaut**
+
+- `PlayerFields` nach dem Ableitungsmuster aus §5, dazu `displayName?` und
+  `avatarSeed`. Modell, Service, Seed und `PlayerFormModal` nachgezogen.
+- Damit ist der Datenmodell-Umbau aus §12 vollständig.
+
+**Entschieden**
+
+- **`avatarSeed` fällt im Service aus dem `username`**, genau wie beim Team
+  aus dem Namen, und wird bei einer Umbenennung nicht neu abgeleitet — das
+  Sprite bleibt dem Spieler.
+- **`CreatePlayerSchema` kennt `avatarSeed` gar nicht** (`omit`), ein vom
+  Client mitgeschickter Wert wird dadurch verworfen statt übernommen. Am
+  Endpunkt geprüft.
+- **`UpdatePlayerSchema` leitet jetzt von `PlayerFields` ab**, nicht mehr von
+  `CreatePlayerSchema` — sonst ließe sich `avatarSeed` auch per PATCH nicht
+  korrigieren, obwohl es ein echtes Feld der Entität ist. Entspricht Regel 4
+  aus KONVENTIONEN §5.
+- **`displayName` bekommt ein Formularfeld.** Ohne Eingabemöglichkeit wäre
+  das Feld tot; das Board fällt bei leerem Wert auf den `username` zurück.
+
+**Geprüft**
+
+- Neu geseedet; Spieler tragen ihren Seed, ein neu angelegter leitet ihn ab
+  (`Zenith` → `zenith`), ein gefälschter wird verworfen.
+
+**Offen**
+
+- `content/announcements.de.json` und der Zieher mit Gedächtnis.
+- Der Board-Service, der die vier Rule-Module verkettet und `BoardState`
+  baut — jetzt nicht mehr blockiert, weil `avatarSeed` überall existiert.
+
+---
+
 ## 2026-09-10 — Seed-Skript
 
 **Gebaut**

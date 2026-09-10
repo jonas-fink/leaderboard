@@ -26,7 +26,12 @@ export const getPlayerMap = async (): Promise<Map<string, PlayerType>> => {
 export const createPlayer = async (
     input: CreatePlayerInput,
 ): Promise<PlayerType> => {
-    const doc = await Player.create(input);
+    // Wie beim Team: der Seed fällt aus dem Namen und wird bei einer
+    // Umbenennung nicht neu abgeleitet — das Sprite bleibt dem Spieler.
+    const doc = await Player.create({
+        ...input,
+        avatarSeed: input.username.trim().toLowerCase(),
+    });
     return asApi<PlayerType>(doc);
 };
 

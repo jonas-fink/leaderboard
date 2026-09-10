@@ -56,7 +56,7 @@ const seed = async () => {
 
     const players = await Player.insertMany(
         ['nova', 'byte', 'pixel', 'glitch', 'echo', 'vector'].map(
-            (username) => ({ username }),
+            (username) => ({ username, avatarSeed: username }),
         ),
     );
     const id = (username: string) =>

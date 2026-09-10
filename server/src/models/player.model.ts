@@ -11,7 +11,10 @@ const playerSchema = new Schema(
             minlength: 2,
             maxlength: 30,
         },
+        displayName: { type: String, trim: true, maxlength: 30 },
         avatarUrl: String,
+        // Deterministischer Fallback-Sprite, wenn kein Avatar hochgeladen ist.
+        avatarSeed: { type: String, required: true },
         countryCode: {
             type: String,
             uppercase: true,

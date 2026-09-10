@@ -23,6 +23,7 @@ export const PlayerFormModal = ({
     player,
 }: PlayerFormModalProps) => {
     const [username, setUsername] = useState(player?.username ?? '');
+    const [displayName, setDisplayName] = useState(player?.displayName ?? '');
     const [avatarUrl, setAvatarUrl] = useState(player?.avatarUrl ?? '');
     const [countryCode, setCountryCode] = useState(player?.countryCode ?? '');
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,6 +38,7 @@ export const PlayerFormModal = ({
 
         const parsed = CreatePlayerSchema.safeParse({
             username: username.trim(),
+            displayName: displayName.trim() || undefined,
             avatarUrl: avatarUrl.trim() || undefined,
             countryCode: countryCode.trim() || undefined,
         });
@@ -69,6 +71,19 @@ export const PlayerFormModal = ({
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Alice"
                         autoFocus
+                    />
+                </Field>
+
+                <Field
+                    label="Anzeigename"
+                    error={errors.displayName}
+                    hint="Steht auf dem Board; leer heißt: der Name von oben"
+                >
+                    <input
+                        className={inputClass}
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Alice ⚡"
                     />
                 </Field>
 
