@@ -1,5 +1,8 @@
 import type { HttpError } from '#types';
 
+// Formatierung ist mit dem Client geteilt — siehe shared/format.ts.
+export * from '../../../shared/format.ts';
+
 export const httpError = (status: number, message: string): HttpError => {
     const error = new Error(message) as HttpError;
     error.status = status;

@@ -17,6 +17,31 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — formatMetricValue nach shared/
+
+**Gebaut**
+
+- `shared/format.ts`; `src/utils/index.ts` und `server/src/utils/index.ts`
+  re-exportieren daraus. Die beiden Client-Aufrufer bleiben unverändert.
+- KONVENTIONEN §2: `shared/` wächst im Baum von einer Datei auf zwei.
+
+**Entschieden**
+
+- **Der Formatter wird geteilt statt verdoppelt.** `announce.ts` rendert den
+  Toast-Text serverseitig fertig (§7), und `{value}` muss dieselbe
+  Darstellung haben wie die Game-Karte daneben — sonst steht auf derselben
+  Leinwand einmal `01:11.350` und einmal `71350`.
+- Strukturänderung an KONVENTIONEN §2: `shared/` war bisher als eine Datei
+  dokumentiert. Der Grund, warum es shared/ gibt, gilt für den Formatter
+  genauso wie für die Schemas.
+
+**Offen**
+
+- `announce.ts` — der eigentliche Schritt, für den der Formatter gebraucht
+  wird.
+
+---
+
 ## 2026-09-10 — standings.ts: Gesamtwertung und olympischer Tie-Break
 
 **Gebaut**

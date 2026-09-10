@@ -28,7 +28,9 @@ nicht `Score not found`.
 
 ```
 leaderboard/
-├── shared/schemas.ts         ← einziger API-Vertrag, von beiden Seiten importiert
+├── shared/
+│   ├── schemas.ts            ← einziger API-Vertrag, von beiden Seiten importiert
+│   └── format.ts             ← Formatter, den Board-Text und UI teilen
 ├── server/src/
 │   ├── config/               Env-Zugriff, sonst nichts
 │   ├── db/                   Verbindung + toJSONOptions
