@@ -40,10 +40,18 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 - **Eine Datei, kein `scripts/`-Ordner.** Ein neuer Ordner bräuchte nach
   KONVENTIONEN §2 einen eigenen Alias; für ein Skript ist das zu viel.
 
-**Offen**
+**Ausgeführt und geprüft** (nach Freigabe: `dbName` ist auf `leaderboard`
+festgelegt, die übrigen Datenbanken im Cluster sieht die Verbindung nicht):
 
-- Skript ist gebaut, aber **nicht ausgeführt** — der Lauf gegen den
-  gehosteten Cluster gehört dem Projektleiter.
+- REST-Durchstich über die laufende API: Turnier, Games mit `weight`,
+  `status`, `boardOrder`, beide Sortierrichtungen.
+- `startsAt` kommt als ISO-String zurück — der Serializer-Umbau bestätigt.
+- Ranglisten mit Gleichstand korrekt: 1, 2, 2, 4, 5 bei ASC wie bei DESC.
+- Beide Refines greifen am echten Endpunkt: ein Score mit
+  `entrantType: 'team'` und `playerId` und eine steigende `pointsTable`
+  werden mit den deutschen Meldungen abgelehnt.
+
+**Offen**
 - `Player` fehlen weiterhin `displayName` und `avatarSeed` (§12); das Seed
   legt sie deshalb nur mit `username` an.
 - `content/announcements.de.json` und der Zieher mit Gedächtnis.
