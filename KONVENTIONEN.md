@@ -286,7 +286,9 @@ die Begründung dazu steht bereits als Kommentar im Code.
 Der bestehende Standard wird gehalten: `aria-label` an Icon-Buttons,
 `aria-pressed` an Toggles, `alt=""` an dekorativen Bildern, sichtbarer
 Fokusring. Für `/board` gilt das nicht — die Ansicht wird nicht bedient und
-bekommt stattdessen `aria-hidden` auf den rein dekorativen Ebenen.
+bekommt stattdessen `aria-hidden` auf den rein dekorativen Ebenen. Einzige
+Ausnahme ist der Rückweg ins Control-Panel: er trägt ein `aria-label`, weil
+sein Text den Turnierort nennt und nicht das Ziel.
 
 ---
 

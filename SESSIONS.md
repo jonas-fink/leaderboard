@@ -21,6 +21,34 @@ die Begründungen zu einzelnen Schritten.
 
 ---
 
+## 2026-09-10 — Rückweg von der Leinwand
+
+**Gebaut**
+
+- `components/board/ExitLink.tsx`: die kleine Kopfzeile über dem Turniernamen
+  ist auf `/board` und `/result` ein Link ins Control-Panel.
+
+**Entschieden**
+
+- **Kein neues Bedienelement.** `/board` ist laut §2 ohne Eingaben, und ein
+  zusätzlicher Knopf auf der Leinwand widerspräche dem. Stattdessen wird das
+  benutzt, was ohnehin dasteht: die Kopfzeile. Unberührt sieht sie aus wie
+  vorher; erst beim Überfahren färbt sie sich cyan und bekommt einen Pfeil.
+- **Der Pfeil liegt außerhalb des Textflusses** (`absolute`, negativer
+  Versatz). Ein Pfeil im Fluss würde den Text dauerhaft nach rechts schieben,
+  auch wenn er unsichtbar ist — eine stille Änderung am freigegebenen Layout.
+- **`py-10 -my-10` vergrößert die Trefferfläche**, ohne im Layout etwas zu
+  verschieben. Die Zeile ist sonst zwölf Pixel hoch.
+- **Ziel ist `/control`, nicht die Browser-Historie.** Es gibt genau eine
+  andere Oberfläche; `history.back()` wäre in einem frisch geöffneten Tab
+  eine Sackgasse.
+
+**Geprüft** (Chrome, 1440×900)
+
+- Board und Siegerehrung: ohne Zeiger unverändert, beim Überfahren Pfeil und
+  Farbwechsel, das Layout verschiebt sich nicht. Klick landet in `/control`.
+- Treffer auch neun Pixel unterhalb des Textes — die vergrößerte Fläche greift.
+
 ## 2026-09-10 — Im Browser nachgesehen: vier Layoutfehler
 
 **Gebaut**

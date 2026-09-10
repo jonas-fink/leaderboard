@@ -32,6 +32,11 @@ das Board sichtbar. Zwischen beidem darf kein manueller Refresh liegen.
 `/board` ist bewusst zustandslos und ohne Eingaben: der Rechner an der Leinwand
 soll die Seite öffnen und für den Rest des Abends nicht angefasst werden.
 
+Die einzige Ausnahme ist der Rückweg: die kleine Kopfzeile über dem
+Turniernamen ist auf `/board` und `/result` ein Link ins Control-Panel. Sie
+sieht unverändert aus und bekommt erst beim Überfahren einen Pfeil — auf der
+Leinwand steht dadurch kein Zeichen mehr als vorher.
+
 ---
 
 ## 3. Datenmodell

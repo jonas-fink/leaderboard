@@ -5,3 +5,4 @@ export { default as AnnouncementBanner } from './AnnouncementBanner';
 export { default as Podium } from './Podium';
 export { default as PointsPerGame } from './PointsPerGame';
 export { default as GameWinners } from './GameWinners';
+export { default as ExitLink } from './ExitLink';

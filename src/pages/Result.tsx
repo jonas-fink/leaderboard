@@ -1,5 +1,10 @@
 import { useParams } from 'react-router';
-import { GameWinners, PointsPerGame, Podium } from '../components/board';
+import {
+    ExitLink,
+    GameWinners,
+    PointsPerGame,
+    Podium,
+} from '../components/board';
 import { useBoard } from '../hooks/useBoard';
 
 /**
@@ -70,12 +75,9 @@ const Result = () => {
             >
                 <div className="absolute inset-x-40 top-36 flex items-end justify-between gap-24">
                     <div className="flex flex-col gap-8">
-                        <div
-                            className="font-display uppercase tracking-[0.34em] text-gold"
-                            style={{ fontSize: 'calc(var(--u) * 13)' }}
-                        >
+                        <ExitLink tone="text-gold">
                             {board.tournament.title}
-                        </div>
+                        </ExitLink>
                         <div
                             className="font-display leading-none tracking-[0.04em] text-ink [text-shadow:0_0_20px_rgb(255_210_63/0.5)]"
                             style={{ fontSize: 'calc(var(--u) * 40)' }}

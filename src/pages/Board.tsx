@@ -1,6 +1,7 @@
 import { useParams } from 'react-router';
 import {
     AnnouncementBanner,
+    ExitLink,
     GamePanel,
     StandingsPanel,
 } from '../components/board';
@@ -67,12 +68,7 @@ const Board = () => {
                 {/* Kopfzeile */}
                 <div className="absolute inset-x-40 top-36 flex items-end justify-between gap-24">
                     <div className="flex flex-col gap-8">
-                        <div
-                            className="font-display uppercase tracking-[0.34em] text-magenta"
-                            style={{ fontSize: 'calc(var(--u) * 13)' }}
-                        >
-                            Future Space Kassel
-                        </div>
+                        <ExitLink>Future Space Kassel</ExitLink>
                         <div
                             className="font-display leading-none tracking-[0.04em] text-ink [text-shadow:0_0_18px_rgb(33_230_216/0.45)]"
                             style={{ fontSize: 'calc(var(--u) * 40)' }}
