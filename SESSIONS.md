@@ -6,6 +6,10 @@ Kurzlog. Ein Eintrag pro abgeschlossenem Schritt: **was** gebaut wurde, welche
 Kein Ersatz für `git log` — hier steht, was der Commit nicht erklärt.
 Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
+**Wer neu einsteigt, liest nicht diesen Log, sondern `PROJEKT.md` §12** —
+dort steht, was fertig ist und was als Nächstes ansteht. Hier unten liegen
+die Begründungen zu einzelnen Schritten.
+
 **Format:**
 
 ```
@@ -14,6 +18,37 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 **Entschieden:** die Entscheidung und der Grund
 **Offen:** was als Nächstes ansteht oder ungeklärt blieb
 ```
+
+---
+
+## 2026-09-10 — Docs auf den Umsetzungsstand gezogen
+
+**Gebaut**
+
+- `PROJEKT.md` §12 heißt nicht mehr „Umbau gegenüber dem Ist-Stand", sondern
+  **„Stand der Umsetzung"**: was fertig ist, wo es liegt, was in welcher
+  Reihenfolge als Nächstes kommt, und was bewusst noch nicht existiert.
+  Die alte Umbau-Tabelle ist abgearbeitet und damit weg.
+- Kopfzeile und §13 nachgezogen; der erledigte Payload-Punkt ist raus.
+- `KONVENTIONEN.md`: die `as`-Regel nennt jetzt beide erlaubten Stellen
+  (`asApi` und den `pre('validate')`-Hook), `seed.ts` steht im Strukturbaum,
+  und dass Prettier absichtlich keine devDependency ist, steht bei §3.
+- `README.md` war noch die unveränderte Vite-Vorlage und ist jetzt ein
+  Einstieg: die drei Dokumente, die Befehle, der Aufbau.
+
+**Entschieden**
+
+- **Der Stand gehört nach `PROJEKT.md`, nicht in diesen Log.** SESSIONS
+  wächst nach unten und beantwortet „warum", nicht „wo stehen wir". Ein
+  frischer Einstieg braucht eine Stelle, und das ist das Einstiegsdokument.
+
+**Offen** — unverändert, siehe `PROJEKT.md` §12:
+
+1. Board-Service, der die vier Rule-Module verkettet und `BoardState` baut.
+2. Spruch-Pool plus Zieher mit Gedächtnis für `announce`s `pick`.
+3. Socket-Layer in `realtime/`.
+4. Upload und Admin-PIN.
+5. Die Oberflächen `/board`, `/control`, `/result`.
 
 ---
 
@@ -88,6 +123,7 @@ festgelegt, die übrigen Datenbanken im Cluster sieht die Verbindung nicht):
   werden mit den deutschen Meldungen abgelehnt.
 
 **Offen**
+
 - `Player` fehlen weiterhin `displayName` und `avatarSeed` (§12); das Seed
   legt sie deshalb nur mit `username` an.
 - `content/announcements.de.json` und der Zieher mit Gedächtnis.
@@ -149,7 +185,7 @@ festgelegt, die übrigen Datenbanken im Cluster sieht die Verbindung nicht):
   Eine turnierübergreifende Teamliste hat keine Bedeutung: dieselbe Person
   spielt beim nächsten Event in einem anderen Team.
 - **`avatarSeed` fällt beim Anlegen aus dem Namen** (getrimmt, klein) und
-  wird bei einer Umbenennung bewusst *nicht* neu abgeleitet — ein Team soll
+  wird bei einer Umbenennung bewusst _nicht_ neu abgeleitet — ein Team soll
   nicht mitten im Turnier ein anderes Gesicht bekommen.
 - **Keine Tests.** Services fassen Mongo an, KONVENTIONEN §7.1 nimmt sie von
   TDD aus. Stattdessen ein Import-Smoketest auf den Router.

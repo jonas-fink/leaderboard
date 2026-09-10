@@ -1,75 +1,46 @@
-# React + TypeScript + Vite
+# Scoreboard — Future Space Kassel
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Dynamisches Scoreboard für die Gaming-Events des Future Space Kassel.
+Eingabe und Anzeige laufen auf getrennten Geräten: auf einem Tablet werden
+Punkte eingetragen, auf der Leinwand erscheint das Board ohne manuellen
+Refresh.
 
-Currently, two official plugins are available:
+## Für den Einstieg
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Drei Dateien, in dieser Reihenfolge — sie sind die Wahrheit, nicht der Code:
 
-## React Compiler
+| Datei             | Inhalt                                                          |
+| ----------------- | --------------------------------------------------------------- |
+| `PROJEKT.md`      | Datenmodell, Wertungslogik, Socket-Architektur, **Stand (§12)** |
+| `KONVENTIONEN.md` | Code-Standards, Ableitungsregeln, Testkonventionen              |
+| `SESSIONS.md`     | Kurzlog: was gebaut, was entschieden, was offen                 |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Was als Nächstes ansteht, steht in `PROJEKT.md` §12.
 
-## Expanding the ESLint configuration
+## Befehle
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```bash
+npm install && npm --prefix server install
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+npm run dev              # Client (Vite)
+npm run dev:server       # API mit --watch
+npm run test:server      # node --test über alle *.check.ts
+npm run typecheck:server
+npm run lint
+npm run build
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+npm --prefix server run seed -- --yes   # leert die DB, legt ein Beispielturnier an
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Das `--yes` beim Seed ist Absicht: `MONGODB_URI` zeigt auf einen gehosteten
+Cluster, und das Skript leert alle Collections der Datenbank `leaderboard`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Aufbau
 
 ```
+shared/     Zod-Vertrag und Formatter, von Client und Server geteilt
+server/     Express 5, Mongoose, Wertungslogik in services/
+src/        React 19, Vite, Tailwind v4, React Query
+```
+
+Konfiguration über `server/.env` (Vorlage: `server/.env.example`).

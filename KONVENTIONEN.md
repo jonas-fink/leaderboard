@@ -32,6 +32,8 @@ leaderboard/
 │   ├── schemas.ts            ← einziger API-Vertrag, von beiden Seiten importiert
 │   └── format.ts             ← Formatter, den Board-Text und UI teilen
 ├── server/src/
+│   ├── index.ts              Serverstart
+│   ├── seed.ts               Beispielturnier, `npm run seed -- --yes`
 │   ├── config/               Env-Zugriff, sonst nichts
 │   ├── db/                   Verbindung + toJSONOptions
 │   ├── models/               Mongoose-Schemas
@@ -84,6 +86,10 @@ Formatierung nur Gewohnheit, und Gewohnheit hält keinen Merge aus.
 }
 ```
 
+Prettier ist bewusst keine devDependency — `npx prettier --write <datei>`
+zieht es bei Bedarf, und die Editor-Integration liest die `.prettierrc`
+ohnehin selbst.
+
 ---
 
 ## 4. TypeScript-Stil
@@ -101,8 +107,9 @@ XyzProps`, wie in `GameCard.tsx` bereits gehandhabt.
 - **`satisfies`** beim Bau von Objekten, die einen Vertrag erfüllen müssen,
   statt einer Typannotation, die Überschussfelder durchrutschen lässt.
 - **Kein `any`.** Wo ein externer Wert wirklich unbekannt ist: `unknown` und
-  danach eine Prüfung. `as` nur an den zwei bekannten Stellen, an denen
-  Mongoose-Typen nicht mitspielen (siehe `asApi`).
+  danach eine Prüfung. `as` nur dort, wo Mongoose-Typen nicht mitspielen —
+  aktuell `asApi` und der `pre('validate')`-Hook in `score.model.ts`, der das
+  Dokument über `this` bekommt. Jede solche Stelle wird begründet.
 
 ---
 

@@ -3,7 +3,8 @@
 Einstiegsdokument. Wer eine neue Session beginnt, liest diese Datei zuerst,
 danach `KONVENTIONEN.md` (Code-Standards) und `SESSIONS.md` (Kurzlog).
 
-Stand: 2026-09-09 · Status: Spezifikation abgestimmt, Umsetzung offen
+Stand: 2026-09-10 · Status: Datenschicht und Wertungslogik stehen,
+Realtime und Oberfläche offen — Einzelheiten in §12.
 
 ---
 
@@ -360,18 +361,53 @@ mitspielt.
 
 ---
 
-## 12. Umbau gegenüber dem Ist-Stand
+## 12. Stand der Umsetzung
 
 Die Datenbank enthält ausschließlich Testdaten. Es gibt **keine Migration** —
-die Collections werden geleert und ein Seed-Skript legt ein Beispielturnier an.
+`npm --prefix server run seed -- --yes` leert alle Collections und legt ein
+Beispielturnier an. Das `--yes` ist Absicht: `MONGODB_URI` zeigt auf einen
+gehosteten Cluster.
 
-| Bereich   | Änderung                                                                                                      |
-| --------- | ------------------------------------------------------------------------------------------------------------- |
-| `Game`    | `+tournamentId`, `+weight`, `+boardOrder`, `+status`, `−timeframe`                                            |
-| `Score`   | `+tournamentId`, `+entrantType`, `+teamId`, `playerId` wird optional                                          |
-| `Player`  | `+displayName`, `+avatarSeed`                                                                                 |
-| `rank.ts` | von `playerId` auf generisches `entrantId` verallgemeinert                                                    |
-| neu       | `Tournament`, `Team`, `points.ts`, `standings.ts`, `announce.ts`, Socket-Layer, Upload-Route, Auth-Middleware |
+### Fertig
+
+| Bereich         | Wo                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| Wertungslogik   | `services/rank.ts`, `points.ts`, `standings.ts`, `announce.ts` — alle vier aus §4.5, testgetrieben |
+| Payload-Vertrag | `shared/schemas.ts`: `BoardStateSchema`, `AnnouncementSchema`, Socket-Events aus §5                |
+| Datenmodell     | Tournament, Team, Player, Game, Score — Schemas, Modelle, Indizes                                  |
+| REST            | `/api/tournaments`, `/api/teams?tournamentId=…` neu; Games, Players, Scores, Leaderboard umgebaut  |
+| Formatierung    | `shared/format.ts` — `formatMetricValue`, von Client und Server genutzt                            |
+| Seed            | `server/src/seed.ts`                                                                               |
+
+`rank.ts` gruppiert über `entrantId` und wertet damit Spieler- wie
+Team-Turniere. `points.ts` verlässt sich auf eine monoton fallende
+`pointsTable`; erzwungen wird das im Zod-Schema **und** im Mongoose-Validator,
+nicht im Rule-Modul.
+
+### Als Nächstes, in dieser Reihenfolge
+
+1. **Board-Service** (`services/board.service.ts`): lädt Turnier, Teilnehmer,
+   Games und Scores, verkettet `rank` → `points` → `standings` und baut den
+   `BoardState`. Kein Rule-Modul, also kein TDD. Name und Bild je Teilnehmer
+   kommen hier dazu — `standings.ts` liefert nur die gerechneten Felder.
+2. **Spruch-Pool** `server/src/content/announcements.de.json` plus der Zieher,
+   der `announce`s `pick` erfüllt: zufällig, ohne Wiederholung, solange
+   ungenutzte Varianten übrig sind. Der Zustand dafür liegt im Zieher, nicht
+   im Rule-Modul.
+3. **Socket-Layer** `server/src/realtime/`: Räume `tournament:<id>`, Emitter
+   `emitBoardUpdate`, Verdrahtung im Score-Controller. Emittiert wird nur von
+   dort (KONVENTIONEN §8).
+4. **Upload** (`multer` + `sharp`) und **Auth** (`requireAdmin`, `ADMIN_PIN`).
+5. **Oberfläche:** `/board`, `/control`, `/result`.
+
+### Noch nicht angefasst
+
+- `/control` existiert nicht. Die alte Dashboard-UI (Dashboard, Games,
+  Players, GameDetail) läuft weiter und ist an das Turnier angeschlossen:
+  Games brauchen einen Turnier-Picker im Formular, Scores erben Turnier und
+  `entrantType` vom Game. **Teamwertungen kann sie nicht eintragen** — das
+  Seed-Beispiel läuft deshalb im `player`-Modus.
+- Kein Socket, kein Upload, kein Admin-PIN.
 
 Bestehendes bleibt bestehen: die REST-Struktur, `toJSONOptions`, die
 Zod-Schemas als geteilte Wahrheit zwischen Client und Server, React Query als
@@ -383,9 +419,6 @@ Cache-Schicht.
 
 - Auflösung und Seitenverhältnis der Leinwand sind unbekannt. Bis das geklärt
   ist, wird strikt auflösungsunabhängig gebaut.
-- ~~Der Payload-Vertrag für `board:update` und `event:announce`.~~ Steht seit
-  dem 2026-09-10 in `shared/schemas.ts` (`BoardStateSchema`,
-  `AnnouncementSchema`, Socket-Events).
 - Ob es einen öffentlichen Archivzugang zwischen den Events geben soll, ist
   nicht entschieden.
 
