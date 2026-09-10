@@ -63,7 +63,9 @@ export const computeStandings = (
     return sorted.map((tally, i) => {
         const previous = sorted[i - 1];
         const rank =
-            previous && byOlympicOrder(previous, tally) === 0 ? lastRank : i + 1;
+            previous && byOlympicOrder(previous, tally) === 0
+                ? lastRank
+                : i + 1;
         lastRank = rank;
 
         return {

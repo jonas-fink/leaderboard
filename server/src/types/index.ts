@@ -1,4 +1,8 @@
-import type { BoardGameEntry, StandingsEntry } from '#schemas';
+import type {
+    AnnouncementType,
+    BoardGameEntry,
+    StandingsEntry,
+} from '#schemas';
 
 export type {
     Game,
@@ -17,6 +21,15 @@ export type {
     CreatePlayerInput,
     UpdatePlayerInput,
     UpdateScoreInput,
+    TournamentMode,
+    TournamentStatus,
+    GameStatus,
+    StandingsEntry,
+    BoardGameEntry,
+    BoardGame,
+    BoardState,
+    AnnouncementType,
+    Announcement,
 } from '#schemas';
 
 /** Ein Score, wie er die DB verlässt — flach, IDs als Strings. */
@@ -46,3 +59,13 @@ export type StandingsRow = Pick<
     StandingsEntry,
     'entrantId' | 'rank' | 'points' | 'share' | 'rankCounts'
 >;
+
+/** Die Spruchvarianten je Ereignistyp, wie sie in content/ liegen. */
+export type AnnouncementPool = Record<AnnouncementType, string[]>;
+
+/**
+ * Zieht eine Variante aus dem Pool. Injiziert, weil die Auswahl zufällig und
+ * wiederholungsfrei sein soll (PROJEKT.md §7) — beides ist Zustand über
+ * Aufrufe hinweg und hat in einem reinen Rule-Modul nichts verloren.
+ */
+export type PickVariant = (variants: string[]) => string;

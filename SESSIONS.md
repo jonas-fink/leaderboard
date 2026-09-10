@@ -17,6 +17,54 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — announce.ts: Board-Diff zu Toast-Ereignissen
+
+**Gebaut**
+
+- `services/announce.check.ts` (16 Tests), danach `services/announce.ts`
+  mit `announce(previous, next, pool, pick)`. Damit sind alle vier
+  Rule-Module aus §4.5 fertig.
+- `#types`: der Board-Vertrag ist re-exportiert, dazu `AnnouncementPool`
+  und `PickVariant`.
+- Prettier über die Dateien dieser Session gezogen; `standings.*` war noch
+  nicht formatiert.
+
+**Entschieden**
+
+- **Die Wiederholungsfreiheit steckt in `pick`, nicht im Modul.** §7 will
+  zufällig und ohne Wiederholung ziehen — das ist Zustand über Aufrufe
+  hinweg und widerspricht §7.2. Ein injiziertes `pick` ist die eine Naht für
+  beides: der Test übergibt `v => v[0]`, die Realtime-Schicht später den
+  Zieher mit Gedächtnis.
+- **`previous === undefined` ergibt `[]`.** Sonst wirft der erste berechnete
+  Zustand für jeden Teilnehmer einen Toast.
+- **Führungswechsel nur für Teilnehmer, die schon in der Wertung standen.**
+  Sonst meldet jeder neu angelegte Spieler einen `new_leader`, weil er ohne
+  Punkte auf Rang 1 einsteigt.
+- **`overtake` schließt den neuen Führenden aus**, sonst kommen für denselben
+  Sprung zwei Toasts.
+- **`tie_broken` wird für den Vorderen der ehemaligen Gruppe gemeldet**, mit
+  seinem neuen Rang — nicht für alle Beteiligten.
+- **`game_finished` trägt den Sieger der Disziplin**, damit der Toast dessen
+  Avatar zeigen und ein Spruch `{entrant} gewinnt {game}` lauten kann.
+- **Reihenfolge der Rückgabe ist die Dringlichkeit**, absteigend von
+  `tournament_finished` bis `first_score`. Das Board zeigt zwei gleichzeitig
+  und stellt den Rest in die Warteschlange; was hinten steht, sieht das
+  Publikum erst später.
+- **Nicht belegte Platzhalter bleiben im Text stehen**, statt still zu
+  verschwinden — ein Tippfehler im Spruch-Pool soll auffallen.
+
+**Offen**
+
+- `content/announcements.de.json` — der Spruch-Pool selbst, plus der Zieher
+  mit Gedächtnis, der `pick` erfüllt.
+- Der Board-Service, der `rank` → `points` → `standings` → `announce`
+  verkettet und Teilnehmerdaten dazulädt. Kein Rule-Modul, kein TDD.
+- Prettier ist keine devDependency; `npx prettier` zieht es bei Bedarf.
+- Weiterhin: `.refine()` auf monoton fallende `pointsTable`.
+
+---
+
 ## 2026-09-10 — formatMetricValue nach shared/
 
 **Gebaut**

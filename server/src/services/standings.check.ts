@@ -5,11 +5,11 @@ import type { Placement } from '#types';
 
 // Die Punkte sind hier freie Eingabe, nicht aus der Punktetabelle abgeleitet —
 // das Mitteln und Gewichten hat points.ts schon erledigt.
-const place = (
-    entrantId: string,
-    rank: number,
-    points: number,
-): Placement => ({ entrantId, rank, points });
+const place = (entrantId: string, rank: number, points: number): Placement => ({
+    entrantId,
+    rank,
+    points,
+});
 
 const kurz = (rows: ReturnType<typeof computeStandings>) =>
     rows.map((r) => [r.entrantId, r.rank, r.points]);
@@ -17,7 +17,12 @@ const kurz = (rows: ReturnType<typeof computeStandings>) =>
 test('die Punkte werden über alle Disziplinen summiert', () => {
     const rows = computeStandings(
         ['a', 'b'],
-        [place('a', 1, 10), place('b', 2, 8), place('a', 2, 8), place('b', 3, 6)],
+        [
+            place('a', 1, 10),
+            place('b', 2, 8),
+            place('a', 2, 8),
+            place('b', 3, 6),
+        ],
     );
     assert.deepEqual(kurz(rows), [
         ['a', 1, 18],
@@ -83,11 +88,7 @@ test('ein geteilter erster Platz zählt für beide als erster Platz', () => {
 test('bleibt auch der Tie-Break gleich, teilen sich beide den Rang und der Folgerang wird übersprungen', () => {
     const rows = computeStandings(
         ['a', 'b', 'c'],
-        [
-            place('a', 1, 10),
-            place('b', 1, 10),
-            place('c', 3, 6),
-        ],
+        [place('a', 1, 10), place('b', 1, 10), place('c', 3, 6)],
     );
     assert.deepEqual(kurz(rows), [
         ['a', 1, 10],
