@@ -17,6 +17,40 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — Tournament- und Team-Modelle
+
+**Gebaut**
+
+- `models/tournament.model.ts` und `models/team.model.ts`, im Barrel vorn,
+  weil Game, Score und Team per `ref` auf sie zeigen.
+
+**Entschieden**
+
+- **Die Monotonie der `pointsTable` steht auch im Mongoose-Validator.**
+  Dieselbe Begründung wie beim polymorphen Score: Seed-Skripte schreiben am
+  Zod-Schema vorbei, und `points.ts` verlässt sich auf die fallende Tabelle,
+  ohne sie nachzuprüfen. Die Regel steht damit an genau den beiden Stellen,
+  an denen Daten hereinkommen.
+- **Team-Name ist nur je Turnier eindeutig**, als zusammengesetzter Index —
+  wie schon der Game-Slug. Dieselbe Crew darf beim nächsten Event wieder
+  denselben Namen tragen.
+- **`members` bleibt eingebettet** statt in einer Membership-Collection: der
+  Kader ist klein und wird immer zusammen mit dem Team gelesen. Weil das Team
+  am Turnier hängt, ist die Zugehörigkeit automatisch turnierbezogen.
+- **Keine Tests.** Modelle fassen Mongo an, KONVENTIONEN §7.1 nimmt sie
+  ausdrücklich von TDD aus. Die Punktetabellen-Regel ist über
+  `schemas.check.ts` auf der Zod-Seite abgedeckt.
+
+**Offen**
+
+- Services, Controller und Routen für Tournament und Team; erst danach kann
+  ein Turnier-Picker entstehen.
+- `Player` fehlen weiterhin `displayName` und `avatarSeed` (§12).
+- `content/announcements.de.json` und der Zieher mit Gedächtnis.
+- Der Board-Service, der die vier Rule-Module verkettet.
+
+---
+
 ## 2026-09-10 — Game- und Score-Umbau
 
 **Gebaut**
