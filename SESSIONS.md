@@ -17,6 +17,44 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — REST für Tournament und Team
+
+**Gebaut**
+
+- Services, Controller und Routen für beide Entitäten nach dem Muster von
+  Game: `/api/tournaments` (Liste, Slug, POST, PATCH, DELETE) und
+  `/api/teams?tournamentId=…`.
+- `db/serialize.ts`: Daten werden jetzt zentral zu ISO-Strings.
+
+**Entschieden**
+
+- **Der Serializer stringifiziert Daten, nicht jeder Service einzeln.**
+  `startsAt` ist im Vertrag ein String, kam aus Mongo aber als `Date` — der
+  Typ wäre an der Stelle schlicht gelogen gewesen. Der Transform machte das
+  für ObjectIds längst, aus genau demselben Grund. Damit ist die Umrechnung
+  in `score.service.toRaw` doppelt und fällt weg.
+- **Turnier löschen räumt Teams, Games und Scores mit ab.** Weil Scores die
+  `tournamentId` denormalisiert tragen, geht das ohne Join — der Grund, aus
+  dem das Feld überhaupt da ist.
+- **`GET /api/teams` verlangt `tournamentId`** und antwortet sonst mit 400.
+  Eine turnierübergreifende Teamliste hat keine Bedeutung: dieselbe Person
+  spielt beim nächsten Event in einem anderen Team.
+- **`avatarSeed` fällt beim Anlegen aus dem Namen** (getrimmt, klein) und
+  wird bei einer Umbenennung bewusst *nicht* neu abgeleitet — ein Team soll
+  nicht mitten im Turnier ein anderes Gesicht bekommen.
+- **Keine Tests.** Services fassen Mongo an, KONVENTIONEN §7.1 nimmt sie von
+  TDD aus. Stattdessen ein Import-Smoketest auf den Router.
+
+**Offen**
+
+- Turnier-Picker im Control-Panel, damit Games wieder anlegbar sind.
+- `Player` fehlen weiterhin `displayName` und `avatarSeed` (§12).
+- `content/announcements.de.json` und der Zieher mit Gedächtnis.
+- Der Board-Service, der die vier Rule-Module verkettet.
+- Seed-Skript für ein Beispielturnier (§12).
+
+---
+
 ## 2026-09-10 — Tournament- und Team-Modelle
 
 **Gebaut**

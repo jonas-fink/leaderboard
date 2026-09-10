@@ -1,3 +1,5 @@
+export * from './tournament.service.ts';
+export * from './team.service.ts';
 export * from './rank.ts';
 export * from './points.ts';
 export * from './standings.ts';
