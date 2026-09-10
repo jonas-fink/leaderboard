@@ -17,6 +17,48 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — standings.ts: Gesamtwertung und olympischer Tie-Break
+
+**Gebaut**
+
+- `services/standings.check.ts` (12 Tests), danach `services/standings.ts`
+  mit `computeStandings(entrantIds, placements)`. Im Services-Barrel.
+- `#types`: `Placement` und `StandingsRow`, beide als `Pick<>` aus den
+  Board-Schemas — kein Typ steht doppelt.
+
+**Entschieden**
+
+- **`placements` kommt flach über alle Disziplinen, ohne `gameId`.** Weder
+  die Punktsumme (§4.3) noch das Platzhistogramm (§4.4) interessiert, aus
+  welchem Spiel ein Ergebnis stammt. Weil `Placement` ein `Pick` von
+  `BoardGameEntry` ist, passt `games.flatMap(g => g.entries)` ohne Adapter.
+- **`entrantIds` ist ein eigener Parameter**, nicht aus den Placements
+  abgeleitet. Sonst verschwindet, wer noch nichts gespielt hat — und genau
+  der soll mit 0 Punkten in der Liste stehen.
+- **Rückgabe ist nicht der fertige `StandingsEntry`.** Name, Bild und Farbe
+  kommen aus Player- bzw. Team-Dokumenten und setzt der Board-Service dazu;
+  das Rule-Modul bleibt DB-frei.
+- **`share` ist 0, solange niemand Punkte hat.** Das Board wird vor dem
+  ersten Score geöffnet; ohne Guard stünde dort NaN und die Validierung
+  gegen `min(0).max(1)` würde werfen.
+- **`rankCounts` wird aufgefüllt statt direkt indiziert.** Ein Loch im Array
+  käme als `null` durch `JSON.stringify` und bräche das Schema.
+- **Bei echtem Gleichstand entscheidet die Reihenfolge in `entrantIds`**,
+  weil die Sortierung stabil ist — auf der Leinwand also Roster-Reihenfolge,
+  nicht Alphabet.
+
+**Offen**
+
+- `announce.ts`: Vergleich zweier `BoardState` → Toast-Ereignisse. Braucht
+  den Spruch-Pool `content/announcements.de.json` und einen injizierten
+  Zufallsgenerator (KONVENTIONEN §7.2).
+- Der Board-Service, der `rank` → `points` → `standings` verkettet und die
+  Teilnehmerdaten dazulädt. Kein Rule-Modul, also kein TDD.
+- Weiterhin offen: `.refine()` auf monoton fallende `pointsTable` am
+  Tournament-Schema.
+
+---
+
 ## 2026-09-10 — points.ts: Platzierungspunkte
 
 **Gebaut**
