@@ -435,11 +435,10 @@ unmittelbar in Canvas-Pixeln rechnet.
 
 ### Als Nächstes
 
-1. **Uploads anschließen.** Der Endpunkt steht, aber kein Formular ruft ihn
-   auf — Avatare und Banner lassen sich noch nicht setzen.
-2. **Die Oberflächen einmal auf der Leinwand ansehen.** Gebaut und
+1. **Die Oberflächen einmal auf der Leinwand ansehen.** Gebaut und
    typgeprüft sind sie, im Browser gesehen noch nicht.
-3. **Mitglieder am Team** pflegbar machen; `members` existiert im Modell.
+2. **Die alten Formularmodale** auf die Token umstellen; sie hängen noch an
+   den Alias-Farben der Vorgängerpalette.
 
 ### Bedienung
 
@@ -453,8 +452,6 @@ unmittelbar in Canvas-Pixeln rechnet.
 
 ### Noch nicht angefasst
 
-- Uploads sind an kein Formular angeschlossen.
-- Team-Mitglieder (`members`) lassen sich über die Oberfläche nicht pflegen.
 - Die alten Formularmodale benutzen noch die auf die neue Palette gemappten
   Alias-Farben statt der Token direkt.
 

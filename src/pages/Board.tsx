@@ -82,7 +82,7 @@ const Board = () => {
                     </div>
                     <div className="flex items-center gap-14">
                         <div className="flex items-center gap-10 border-2 border-cyan bg-cyan/10 px-14 py-9 shadow-[4px_4px_0_var(--color-bg)]">
-                            <div className="h-10 w-10 bg-cyan shadow-[0_0_10px_var(--color-cyan)]" />
+                            <div className="pulse-status h-10 w-10 text-cyan" />
                             <div
                                 className="font-display tracking-[0.16em] text-cyan"
                                 style={{ fontSize: 'calc(var(--u) * 13)' }}
@@ -167,7 +167,7 @@ const Board = () => {
                         </div>
                         <div className="flex items-center gap-9">
                             <div
-                                className={`h-8 w-8 ${connected ? 'bg-green shadow-[0_0_8px_var(--color-green)]' : 'bg-orange shadow-[0_0_8px_var(--color-orange)]'}`}
+                                className={`pulse-status h-8 w-8 ${connected ? 'text-green' : 'text-orange'}`}
                             />
                             <div
                                 className={`font-display tracking-[0.12em] ${connected ? 'text-green' : 'text-orange'}`}

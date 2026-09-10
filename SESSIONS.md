@@ -21,6 +21,51 @@ die Begründungen zu einzelnen Schritten.
 
 ---
 
+## 2026-09-10 — Pulsender Statuspunkt, Uploads und Kader
+
+**Gebaut**
+
+- `.pulse-status` in `index.css`: der Verbindungs- und der LIVE-Punkt pulsen
+  langsam (2 s, alternierend). Auf Wunsch — eine Leinwand, auf der sich
+  minutenlang nichts rührt, sieht aus wie ein eingefrorenes Bild.
+- `components/control/ImageField.tsx`: Bild hochladen **oder** Adresse
+  eintippen. Eingebaut in Spieler-, Game- und Team-Formular. Damit hängt der
+  Upload-Endpunkt zum ersten Mal an einer Oberfläche.
+- Kader am Team: `members` ist im Team-Formular als Auswahlliste pflegbar.
+
+**Entschieden**
+
+- **CSS-Keyframes statt Motion für den Punkt.** Eine Endlosschleife ohne
+  Zustand braucht kein JavaScript. Die Farbe kommt über `currentColor`,
+  damit derselbe Punkt in Grün, Cyan oder Orange leuchtet, ohne die Regel zu
+  verdoppeln. Unter `prefers-reduced-motion` steht er still (§9.3).
+- **Beide Wege fürs Bild bleiben offen.** Ein Team-Logo kann schon irgendwo
+  liegen; der Upload ist der bequeme, nicht der einzige Weg.
+
+**Nebenbei behoben**
+
+- Der Punktebalken in `StandingsRow` hatte seine Dauer fest verdrahtet statt
+  `move` zu benutzen. Unter `prefers-reduced-motion` wäre die Zeile in 150 ms
+  geblendet, während der Balken weiter 420 ms lang gelaufen wäre — zwei
+  Bewegungen, wo eine gemeint ist.
+
+**Zur Frage nach der Rangwechsel-Animation:** die gab es schon —
+`motion.div layout` auf der Standings-Zeile, 420 ms mit
+`cubic-bezier(.2,.8,.2,1)` aus dem Canvas, der Balken läuft synchron mit,
+`AnimatePresence` für Ein- und Austritte, und bei `prefers-reduced-motion`
+fällt beides auf einen Crossfade in 150 ms zurück.
+
+**Geprüft**
+
+- Upload-Kette am laufenden Server: Multipart wie aus dem Browser → 128×128
+  PNG → Adresse per PATCH an `avatarUrl` → Board liefert sie als `imageUrl`.
+  Testbild und Feld danach wieder entfernt.
+
+**Offen**
+
+- Die Oberflächen sind weiterhin nicht im Browser gesehen.
+- `GameFormModal` und `PlayerFormModal` benutzen noch die Alias-Farben.
+
 ## 2026-09-10 — Die Oberfläche: /board, /result, /control
 
 **Gebaut**

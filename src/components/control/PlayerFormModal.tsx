@@ -9,6 +9,7 @@ import {
     primaryButtonClass,
 } from '../../lib/form';
 import { useCreatePlayer, useUpdatePlayer } from '../../hooks';
+import { ImageField } from './ImageField';
 import { CreatePlayerSchema, type Player } from '../../schemas';
 
 interface PlayerFormModalProps {
@@ -87,14 +88,13 @@ export const PlayerFormModal = ({
                     />
                 </Field>
 
-                <Field label="Avatar-URL" error={errors.avatarUrl}>
-                    <input
-                        className={inputClass}
-                        value={avatarUrl}
-                        onChange={(e) => setAvatarUrl(e.target.value)}
-                        placeholder="https://…"
-                    />
-                </Field>
+                <ImageField
+                    label="Avatar"
+                    value={avatarUrl}
+                    onChange={setAvatarUrl}
+                    error={errors.avatarUrl}
+                    hint="Ohne Bild zeichnet das Board den Sprite aus dem Namen"
+                />
 
                 <Field
                     label="Land"

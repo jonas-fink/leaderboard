@@ -97,6 +97,40 @@
     --spacing: var(--u);
 }
 
+/**
+ * Der Lebenszeichen-Punkt: Verbindung und Turnierstatus. Eine Leinwand, auf
+ * der sich minutenlang nichts rührt, sieht aus wie ein eingefrorenes Bild —
+ * das langsame Pulsen sagt dem Raum, dass die Anzeige lebt.
+ *
+ * Farbe kommt über `currentColor`, damit derselbe Punkt in Grün, Cyan oder
+ * Orange leuchtet, ohne die Regel zu verdoppeln. CSS statt Motion: eine
+ * Endlosschleife ohne Zustand braucht kein JavaScript.
+ */
+.pulse-status {
+    background-color: currentColor;
+    animation: pulse-status 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-status {
+    from {
+        opacity: 0.45;
+        box-shadow: 0 0 calc(var(--u, 1px) * 4) currentColor;
+    }
+    to {
+        opacity: 1;
+        box-shadow: 0 0 calc(var(--u, 1px) * 12) currentColor;
+    }
+}
+
+/* KONVENTIONEN §9.3: wer weniger Bewegung will, bekommt einen ruhigen Punkt. */
+@media (prefers-reduced-motion: reduce) {
+    .pulse-status {
+        animation: none;
+        opacity: 1;
+        box-shadow: 0 0 calc(var(--u, 1px) * 8) currentColor;
+    }
+}
+
 @layer base {
     /* Bis der Navbar-Umbau kommt: das alte Wortmarken-Styling in neuer Schrift. */
     .wordmark {

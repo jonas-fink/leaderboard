@@ -1,9 +1,10 @@
 import { useState, type SubmitEvent } from 'react';
-import { Field, FormError, Modal } from '../components';
+import { Field, FormError, ImageField, Modal } from '../components';
 import { ghostButtonClass, inputClass, primaryButtonClass } from '../lib/form';
 import {
     useCreateTeam,
     useDeleteTeam,
+    usePlayers,
     useTeams,
     useUpdateTeam,
 } from '../hooks';
@@ -29,6 +30,7 @@ const SUGGESTED = [
 const Teams = () => {
     const { tournament } = useTournamentContext();
     const { data: teams = [], isLoading } = useTeams(tournament?.id);
+    const { data: players = [] } = usePlayers();
     const createTeam = useCreateTeam();
     const updateTeam = useUpdateTeam();
     const deleteTeam = useDeleteTeam(tournament?.id ?? '');
@@ -37,6 +39,8 @@ const Teams = () => {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState('');
     const [color, setColor] = useState(SUGGESTED[0]!);
+    const [bannerUrl, setBannerUrl] = useState('');
+    const [members, setMembers] = useState<string[]>([]);
 
     if (!tournament) {
         return (
@@ -50,12 +54,19 @@ const Teams = () => {
         setEditing(team);
         setName(team?.name ?? '');
         setColor(team?.colorPrimary ?? SUGGESTED[0]!);
+        setBannerUrl(team?.bannerUrl ?? '');
+        setMembers(team?.members ?? []);
         setOpen(true);
     };
 
     const submit = (event: SubmitEvent) => {
         event.preventDefault();
-        const payload = { name: name.trim(), colorPrimary: color };
+        const payload = {
+            name: name.trim(),
+            colorPrimary: color,
+            bannerUrl: bannerUrl.trim() || undefined,
+            members,
+        };
         if (!payload.name) return;
 
         const done = { onSuccess: () => setOpen(false) };
@@ -63,7 +74,7 @@ const Teams = () => {
             updateTeam.mutate({ id: editing.id, patch: payload }, done);
         } else {
             createTeam.mutate(
-                { ...payload, tournamentId: tournament.id, members: [] },
+                { ...payload, tournamentId: tournament.id },
                 done,
             );
         }
@@ -168,6 +179,55 @@ const Teams = () => {
                             />
                         </div>
                     </Field>
+
+                    <Field
+                        label="Kader"
+                        hint="Wer im Team spielt. Gewertet wird trotzdem das Team."
+                    >
+                        <div className="flex max-h-48 flex-col gap-1 overflow-y-auto border-2 border-line bg-bg p-2">
+                            {players.map((player) => {
+                                const inTeam = members.includes(player.id);
+                                return (
+                                    <label
+                                        key={player.id}
+                                        className="flex cursor-pointer items-center gap-2 px-1 py-0.5 text-sm text-ink"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={inTeam}
+                                            onChange={() =>
+                                                setMembers((current) =>
+                                                    inTeam
+                                                        ? current.filter(
+                                                              (id) =>
+                                                                  id !==
+                                                                  player.id,
+                                                          )
+                                                        : [
+                                                              ...current,
+                                                              player.id,
+                                                          ],
+                                                )
+                                            }
+                                        />
+                                        {player.displayName || player.username}
+                                    </label>
+                                );
+                            })}
+                            {players.length === 0 && (
+                                <span className="p-1 text-sm text-ink-mute">
+                                    Noch keine Spieler angelegt.
+                                </span>
+                            )}
+                        </div>
+                    </Field>
+
+                    <ImageField
+                        label="Banner"
+                        value={bannerUrl}
+                        onChange={setBannerUrl}
+                        hint="Ohne Bild zeichnet das Board den Sprite aus dem Namen"
+                    />
 
                     <FormError
                         error={createTeam.error ?? updateTeam.error ?? null}

@@ -9,6 +9,7 @@ import {
     primaryButtonClass,
 } from '../../lib/form';
 import { useCreateGame, useUpdateGame, useTournaments } from '../../hooks';
+import { ImageField } from './ImageField';
 import { CreateGameSchema, type Game } from '../../schemas';
 
 const GENRES = ['racing', 'sports', 'arcade', 'fps', 'custom'] as const;
@@ -206,18 +207,13 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                     </Field>
                 </div>
 
-                <Field
-                    label="Cover-URL"
+                <ImageField
+                    label="Cover"
+                    value={form.coverUrl}
+                    onChange={set('coverUrl')}
                     error={errors.coverUrl}
                     hint="Hintergrundbild der Karte"
-                >
-                    <input
-                        className={inputClass}
-                        value={form.coverUrl}
-                        onChange={(e) => set('coverUrl')(e.target.value)}
-                        placeholder="https://…"
-                    />
-                </Field>
+                />
 
                 <fieldset className="space-y-4 rounded-xl border border-line bg-surface-2/60 p-4">
                     <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-ink-mute">

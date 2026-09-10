@@ -71,10 +71,9 @@ const StandingsRow = ({ entry }: StandingsRowProps) => {
                                 'repeating-linear-gradient(90deg, rgb(11 6 32 / 0.45) 0 1px, transparent 1px 8px)',
                         }}
                         animate={{ width: `${entry.share * 100}%` }}
-                        transition={{
-                            duration: 0.42,
-                            ease: [0.2, 0.8, 0.2, 1],
-                        }}
+                        // Dieselbe Kurve wie die Zeile: Sprung und Balken
+                        // sind eine Bewegung, nicht zwei.
+                        transition={move}
                     />
                 </div>
             </div>
