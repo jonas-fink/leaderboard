@@ -28,7 +28,7 @@ const ExitLink = ({ children, tone = 'text-magenta' }: ExitLinkProps) => (
     >
         <span
             aria-hidden
-            className="absolute top-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+            className="absolute top-7 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
             style={{ left: 'calc(var(--u) * -22)' }}
         >
             ←
