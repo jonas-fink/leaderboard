@@ -17,6 +17,40 @@ Fachliche Wahrheit liegt in `PROJEKT.md`, Code-Standards in `KONVENTIONEN.md`.
 
 ---
 
+## 2026-09-10 — points.ts: Platzierungspunkte
+
+**Gebaut**
+
+- `services/points.check.ts` (13 Tests) und danach `services/points.ts` mit
+  `placementPoints(ranks, pointsTable, weight = 1)`. Im Services-Barrel.
+
+**Entschieden**
+
+- **Signatur nur über `number[]`.** Das Modul kennt weder `RankedScore` noch
+  `Game`. `standings.ts` reicht `ranked.map(e => e.rank)` hinein und zippt
+  das Ergebnis per Index zurück. Genau das, was §4.2 beschreibt, sonst nichts.
+- **Gruppiert wird über den Rangwert, nicht über benachbarte Einträge.**
+  `rankScores` liefert zwar sortiert, aber eine Zählung per Map ist gleich
+  kurz und bleibt bei unsortierter Eingabe korrekt.
+- **Fehlende Tabellenplätze werden als 0 mit eingemittelt.** Zwei auf Rang 2
+  bei Tabelle `[10,8]` bekommen je 4, nicht 8. Nur so bleibt die
+  ausgeschüttete Summe konstant — die Begründung, mit der §4.2 das Mitteln
+  überhaupt einführt.
+- **Monotonie ist Invariante, nicht Zufall.** Zwei Ranggruppen mitteln
+  disjunkte, aufeinanderfolgende Ausschnitte einer fallenden Tabelle; ein
+  schlechterer Rang kann einen besseren nie überholen. Steht als eigener
+  Test, weil das die Frage ist, die man sich bei diesem Modul stellt.
+
+**Offen**
+
+- **`pointsTable` muss monoton fallen**, sonst kippt die Monotonie-Garantie.
+  `points.ts` prüft das bewusst nicht — es rechnet, es validiert nicht. Gehört
+  als `.refine()` an `TournamentFields`, sobald dieses Schema entsteht.
+- `standings.ts` nach TDD: Summe über alle Games, olympischer Tie-Break,
+  `share` und `rankCounts` für den Board-Payload.
+
+---
+
 ## 2026-09-10 — Payload-Vertrag für board:update und event:announce
 
 **Gebaut**
