@@ -42,11 +42,11 @@ leaderboard/
 │   ├── services/             Fachlogik und DB-Zugriff
 │   ├── controllers/          Request → Service → Response
 │   ├── routes/               Pfad + Middleware-Kette
-│   ├── middleware/           validate, error, requireAdmin
-│   ├── realtime/             (neu) Socket.IO-Setup und Emitter
-│   └── content/              (neu) announcements.de.json
+│   ├── middleware/           validate, error, auth, upload
+│   ├── realtime/             Socket.IO-Setup und die einzigen Emits
+│   └── content/              announcements.de.json + Zieher
 └── src/
-    ├── lib/                  api.ts, socket.ts (neu), form.ts
+    ├── lib/                  api.ts, auth.ts, socket.ts (neu), form.ts
     ├── hooks/                React-Query-Hooks + Query-Keys
     ├── schemas/              Re-Export aus shared/
     ├── components/           wiederverwendbare Bausteine
@@ -64,8 +64,8 @@ das Barrel zu vermeiden.
 
 **Server-Imports laufen über die Subpath-Aliase** aus `server/package.json`
 (`#config`, `#db`, `#models`, `#schemas`, `#types`, `#utils`, `#services`,
-`#services/*`, `#controllers`, `#routes`, `#middleware`). Neue Ordner bekommen
-einen eigenen Alias: `#realtime`, `#content`.
+`#services/*`, `#controllers`, `#routes`, `#middleware`, `#realtime`,
+`#content`). Ein neuer Ordner bekommt einen eigenen Alias.
 
 ---
 

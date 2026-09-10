@@ -21,6 +21,225 @@ die Begründungen zu einzelnen Schritten.
 
 ---
 
+## 2026-09-10 — Alles über den Funnel: Leserouten zu, Anmeldebremse
+
+**Anlass**
+
+Durchgesprochen, was der Zugriffsschutz garantiert, wenn die Anwendung
+öffentlich steht. Ergebnis: **nichts über den PIN hinaus.** Es gibt keinen
+Besitzer eines Turniers, kein Nutzermodell, keine Mandanten. Der Entwurf trug
+seine Sicherheit auf der Netzwerkebene (§9: `/control` nur im Tailnet) — und
+genau die fällt weg, weil das Control-Panel von fremden Geräten aus bedienbar
+sein soll, ohne sie ins Tailnet aufzunehmen. Server steht beim Projektleiter,
+der Funnel liefert HTTPS, der Beamer-Rechner hängt in einem anderen Netz.
+
+**Gebaut**
+
+- `requireAdminForWrites` heißt jetzt `requireAdmin` und verlangt ein Token
+  für **jede** Methode, auch lesend.
+- `routes/index.ts` zieht die Grenze neu: öffentlich sind `/api/health`,
+  `POST /api/auth` und `GET /api/board/:slug`. Alles andere — auch
+  `/api/players`, `/api/scores`, `/api/leaderboard` — liegt darunter.
+- Anmeldebremse in `services/auth.service.ts`: Fehlversuche je Absender und
+  über alle zusammen, 10-Minuten-Fenster, `429` statt `401`. Vier Tests.
+- `app.set('trust proxy', 'loopback')`, damit hinter dem Funnel nicht jeder
+  Besucher als `127.0.0.1` gezählt wird.
+- `DELETE /api/tournaments/:id` ist weg; der Service bleibt für ein Skript.
+- Neuer PIN in `server/.env`, `.env.example` erklärt, wie man einen erzeugt.
+
+**Entschieden**
+
+- **Die Leserouten waren das eigentliche Loch.** Alle 14 GET-Routen liefen an
+  der Middleware vorbei: ein Fremder konnte Turniere, Spieler, Teams, Games
+  und sämtliche Scores abrufen. Für eine Jugendeinrichtung ist das der Punkt,
+  der zählt — nicht die Score-Manipulation.
+- **Öffentlich ist genau `GET /api/board/:slug`.** Der Beamer-Rechner kann
+  sich nicht anmelden und soll es nicht müssen. `/api/leaderboard` gehört
+  ausdrücklich nicht dazu: es liefert Spielerdaten und ist die Datenquelle
+  der alten Dashboard-Oberfläche, also Control-Seite.
+- **Die Bremse ist absichtlich großzügig** (20 je Absender, 200 gesamt, je 10
+  Minuten). Gegen einen zufälligen PIN richtet auch das Zehnfache nichts aus,
+  aber während einer Sperre wird auch der **richtige** PIN abgewiesen — eng
+  gezählt könnte ein Fremder den Veranstalter mitten im Event aussperren.
+  Erster Entwurf stand bei 10/60 und genau das trat im Test ein.
+- **Ein bereits angemeldetes Gerät bleibt bei Sperre arbeitsfähig**, weil die
+  Bremse nur an `/api/auth` hängt und das Token 12 Stunden gilt. Damit kostet
+  ein Sperrversuch mitten im Event keine Eingabemöglichkeit. Geprüft.
+- **Turnier löschen kann die API nicht mehr.** Die Kaskade räumt Teams, Games
+  und Scores mit ab; über den öffentlichen Funnel wäre ein erratener PIN
+  damit nicht ein falscher Punktestand, sondern das Ende des Events. Der
+  Controller ist gelöscht, der Service dokumentiert als Skript-Weg.
+- **Kein Mandantenmodell.** `ownerId`, Nutzer und turnierbezogene Leserouten
+  wären ein Datenmodell-Umbau und stehen in §14 ausdrücklich außerhalb des
+  Scopes. Solange eine Instanz einem Veranstalter gehört, ist der PIN die
+  richtige Granularität.
+- **Kein `express-rate-limit`.** Eine `Map` mit Zeitfenster ist kürzer als
+  die Konfiguration der Bibliothek und läuft im selben Prozess wie alles
+  andere.
+
+**Geprüft** (Server auf Port 4001, hinter dem Funnel simuliert)
+
+- Ohne Token: `/api/board/:slug` 200, `/tournaments`, `/players`, `/scores`,
+  `/teams`, `/games`, `/leaderboard` je 401.
+- `DELETE /api/tournaments/:id` gibt es nicht mehr.
+- 25 parallele Fehlversuche → ab dem 21. `429`; ein vorher angemeldetes Gerät
+  schreibt währenddessen weiter mit `200`.
+- Kein Operator-Injection über Query-Strings: Express 5 nutzt den einfachen
+  Parser, `?gameId[$ne]=x` wird schlicht ignoriert.
+
+**Offen**
+
+- Die Oberflächen `/board`, `/control`, `/result`.
+- Die alte Dashboard-Oberfläche braucht ab sofort ein Token, um überhaupt
+  etwas anzuzeigen — die PIN-Eingabe steht in der Navbar.
+- Der Socket ist weiterhin unauthentifiziert: `room:join` nimmt jede
+  `tournamentId`. Für das öffentliche Board ist das richtig, heißt aber, dass
+  auch ein Turnier im Status `draft` live mitgelesen werden kann.
+- Ein Log für Fehlanmeldungen gibt es nicht.
+
+## 2026-09-10 — Zugriffsschutz und Upload
+
+**Gebaut**
+
+- `services/auth.service.ts`: PIN-Prüfung und signiertes Token, dazu
+  `middleware/auth.ts` (`requireAdminForWrites`) und `POST /api/auth`.
+  Fünf Tests in `services/auth.check.ts`.
+- Upload: `middleware/upload.ts` (multer, 2 MB, PNG/JPEG/WebP),
+  `services/upload.service.ts` (sharp → 128×128 PNG, Nearest-Neighbour),
+  `POST /api/uploads`, ausgeliefert über `express.static` auf `/uploads`.
+- `shared/schemas.ts`: `ImageUrlSchema`, `LoginSchema`, `AuthTokenSchema`,
+  `UploadResultSchema`. Neue Env-Werte `ADMIN_PIN` und `UPLOAD_DIR`.
+- Client: `lib/auth.ts` (Token im localStorage), `api.ts` schickt den
+  `Authorization`-Header und kennt `login()` und `uploadImage()`,
+  `components/layout/PinLock.tsx` in der Navbar.
+
+**Entschieden**
+
+- **Kein JWT, kein `jsonwebtoken`.** Es gibt genau einen Claim (das
+  Ablaufdatum) und einen Aussteller. `createHmac` aus `node:crypto` reicht:
+  `<ablauf>.<hmac>`, base64url. Verglichen wird mit `timingSafeEqual`.
+- **Signiert wird mit dem `ADMIN_PIN` selbst.** Ein zweites Geheimnis brächte
+  nichts — wer den PIN kennt, darf ohnehin schreiben. Nebeneffekt: ein
+  geänderter PIN entwertet alle ausgegebenen Tokens sofort.
+- **Die Middleware hängt einmal zentral in `routes/index.ts`**, nicht je
+  Route. Sie lässt GET, HEAD und OPTIONS durch und verlangt sonst ein Token.
+  So kann eine neu hinzugefügte Route nicht versehentlich offen bleiben —
+  der Fehler, den die Variante „je Route eintragen" jedes Mal erlaubt.
+- **500 ms Wartezeit nach falschem PIN.** Netzwerkseitig ist die Eingabe
+  ohnehin nur im Tailnet erreichbar (§9); die Bremse kostet nichts und nimmt
+  dem Durchprobieren die Geschwindigkeit.
+- **`z.url()` reicht für Bildfelder nicht.** Ein eigener Upload liefert
+  `/uploads/<name>.png`, also eine relative Adresse — `z.url()` hätte genau
+  die abgelehnt. Neu ist `ImageUrlSchema`: externe URL **oder** ein Pfad
+  unterhalb von `/uploads/`. Gilt für `coverUrl`, `avatarUrl`, `bannerUrl`
+  und `imageUrl` im Board-Vertrag.
+- **`token.ts` liegt in `services/`, nicht in `utils/`.** Erster Versuch war
+  der Utils-Barrel — der zieht damit `#config` in jede Datei, die
+  `formatMetricValue` importiert, und `announce.check.ts` fiel sofort um
+  (kein `MONGODB_URI` im Testlauf). Die Rule-Module bleiben nur rein, wenn
+  der Barrel, den sie anfassen, nichts lädt.
+- **Multer-Fehler bekommen einen Status.** `MulterError` trägt keinen, lief
+  also als 500 durch. Jetzt 413 mit deutscher Meldung bei zu großer Datei,
+  sonst 400.
+- **Die Datei bleibt im Speicher, bis sharp fertig ist.** `memoryStorage`
+  statt `diskStorage`: eine Zwischendatei wäre nur Müll, den jemand
+  aufräumen müsste.
+- **`PinLock` ist ein Feld in der Navbar, kein Auth-Context.** Der Zustand
+  ist ein Eintrag im localStorage mit genau einem Leser. Als
+  `ponytail:`-Notiz vermerkt; die richtige Anmeldemaske kommt mit `/control`.
+- **Ein 401 löscht das Token nur, wenn eines mitgeschickt wurde.** Sonst
+  überschriebe der Client die Servermeldung „Falscher PIN" mit
+  „Sitzung abgelaufen".
+
+**Geprüft** (Server auf Port 4001)
+
+- Schreiben ohne Token 401, Lesen ohne Token 200, falscher PIN 401 mit
+  „Falscher PIN", richtiger PIN gibt ein Token, manipulierte Signatur 401,
+  Schreiben mit Token 201.
+- Upload: 900×300 JPEG kommt als 128×128 PNG zurück und ist unter der
+  gelieferten Adresse abrufbar; `text/plain` 415; 25 MB 413; Upload ohne
+  Token 401. Die Adresse ließ sich per PATCH an `avatarUrl` hängen — das
+  neue `ImageUrlSchema` nimmt sie an.
+- Testspieler und Testbilder wieder entfernt.
+
+**Offen**
+
+- Die Oberflächen `/board`, `/control`, `/result` — der letzte Punkt aus §12.
+- `ADMIN_PIN` steht mit einem generierten Entwicklungswert in `server/.env`
+  und gehört vor dem Event ersetzt.
+- `npm audit` meldet weiterhin die moderate `qs`-Lücke über Express.
+
+## 2026-09-10 — Board-Service, Spruch-Pool, Socket-Layer
+
+**Gebaut**
+
+- `services/board.service.ts`: lädt Turnier, Games, Scores und Teilnehmer und
+  verkettet `rank` → `points` → `standings` zum `BoardState`. Dazu
+  `GET /api/board/:slug` als Poll-Netz (§5).
+- `content/announcements.de.json` mit sechs Varianten je Ereignistyp, plus
+  `content/index.ts`: Pool-Validierung beim Start und `createPicker()`, der
+  `announce`s `pick` erfüllt. Alias `#content`.
+- `realtime/index.ts`: Socket.IO am selben HTTP-Server, Räume
+  `tournament:<id>`, `emitBoardUpdate` und `emitTournamentStatus`. Verdrahtet
+  in Score-, Game- und Tournament-Controller. Alias `#realtime`.
+- Vite proxyt `/socket.io` mit `ws: true`; `socket.io-client` liegt schon im
+  Client-`package.json` für die spätere Oberfläche.
+
+**Entschieden**
+
+- **Gerechnet wird über alle Games, angezeigt nur die gepinnten.** Die
+  Gesamtwertung kennt kein Streichresultat (§4.3), das Board zeigt dagegen
+  eine Auswahl in `boardOrder`. Ein Filter, zwei Bedeutungen.
+- **Teilnehmer im Spieler-Modus sind die mit mindestens einem Ergebnis.**
+  Teams sind am Turnier gemeldet und stehen auch ohne Ergebnis mit 0 Punkten
+  drin; Spieler sind global, es gibt keine Turniermeldung. Die Score-Eingabe
+  ist damit die Anmeldung. Als `ponytail:`-Notiz im Code vermerkt — eine
+  Roster-Liste kommt, wenn /control sie braucht.
+- **Ergebnisse ohne Teilnehmer fallen raus.** Der Client schlägt jeden
+  Game-Eintrag in den Standings nach; ein Score eines gelöschten Spielers
+  hinterließe dort eine Leerzeile.
+- **`buildBoardState` nimmt ein Turnier, nicht einen Slug.** Die Leinwand
+  kennt den Slug, die Räume und Scores tragen die ID — daher `boardBySlug`
+  und `boardById` als zwei dünne Einstiege statt zweier Ladepfade.
+- **`deleteScore` und `deleteGame` geben das gelöschte Dokument zurück.**
+  Ohne das kennt der Controller nach dem Löschen die `tournamentId` nicht
+  mehr und kann den Raum nicht bedienen.
+- **Der Pool wird beim Start geprüft, nicht beim Ziehen.** Die Datei soll vor
+  jedem Event von Hand angepasst werden (§7); ein Tippfehler soll den Server
+  laut nicht hochkommen lassen statt mitten im Event einen leeren Toast zu
+  erzeugen.
+- **Der Vorrat des Ziehers hängt per `WeakMap` an der Variantenliste selbst.**
+  `pick` bekommt nur das Array — damit hat jeder Ereignistyp automatisch
+  seinen eigenen Vorrat, ohne dass der Zieher die Typen kennen muss.
+- **Der vorherige Board-Zustand liegt im Prozessspeicher.** Ein Neustart
+  mitten im Event kostet die Toasts des nächsten Scores, nicht die Wertung —
+  die wird bei jedem Abruf neu gerechnet.
+- **Emittiert wird nur aus `realtime/`** (KONVENTIONEN §8); ohne
+  initialisierten Socket tut `emitBoardUpdate` nichts, damit Skripte laufen.
+- **Kein TDD für Board-Service und Realtime** — beides fasst Mongo
+  beziehungsweise Sockets an (§7.1). Der Zieher hat trotzdem vier Tests, weil
+  er Zustand hält: `content/content.check.ts`.
+
+**Geprüft** (Server auf Port 4001, weil auf 4000 noch ein alter Prozess lief)
+
+- `GET /api/board/future-space-night`: Gesamtwertung mit echtem Gleichstand
+  auf Rang 1 (nova/byte, 17 Punkte, Folgerang 3), Mittelung bei Gleichstand
+  in Mario Kart (je 7), `computedAt` als ISO-String.
+- Socket-Durchstich: `room:join`, dann zwei Scores per REST — erster Emit
+  ohne Toasts (kein Vorzustand), zweiter mit
+  `personal_best: echo legt in Mario Kart nach — 00:50.000, Platz 1`. Der
+  Wert kommt formatiert, nicht als `50000`.
+- Nach dem Aufräumen der Testscores steht die Seed-Wertung unverändert da.
+
+**Offen**
+
+- Upload (`multer` + `sharp`) und Admin-PIN.
+- Die Oberflächen `/board`, `/control`, `/result`.
+- `npm audit` meldet eine moderate Lücke in `qs` (transitiv über Express);
+  nicht angefasst, weil der Fix Express-Abhängigkeiten anhebt.
+- Auf Port 4000 läuft noch ein Serverprozess aus einer früheren Session mit
+  altem Code — der kennt `/api/board` nicht und muss neu gestartet werden.
+
 ## 2026-09-10 — Docs auf den Umsetzungsstand gezogen
 
 **Gebaut**

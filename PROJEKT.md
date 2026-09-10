@@ -3,8 +3,9 @@
 Einstiegsdokument. Wer eine neue Session beginnt, liest diese Datei zuerst,
 danach `KONVENTIONEN.md` (Code-Standards) und `SESSIONS.md` (Kurzlog).
 
-Stand: 2026-09-10 · Status: Datenschicht und Wertungslogik stehen,
-Realtime und Oberfläche offen — Einzelheiten in §12.
+Stand: 2026-09-10 · Status: Server ist vollständig — Datenschicht,
+Wertungslogik, Realtime, Zugriffsschutz und Upload. Offen ist die
+Oberfläche, Einzelheiten in §12.
 
 ---
 
@@ -309,14 +310,43 @@ vergeben.
 ## 9. Zugriffsschutz
 
 Kein User-Modell. Eine geteilte Passphrase aus `ADMIN_PIN` schaltet die Eingabe
-frei; der Server gibt dafür ein HMAC-signiertes Token mit Ablaufdatum aus, das
-im `localStorage` liegt. Eine `requireAdmin`-Middleware hängt vor allen
-schreibenden Routen. Board- und Result-Routen sind offen lesbar.
+frei; der Server gibt dafür ein HMAC-signiertes Token mit 12 Stunden Laufzeit
+aus, das im `localStorage` liegt.
 
-Zusätzlich auf Netzwerkebene: `/board` und `/result` öffentlich per Tailscale
-Funnel, `/control` und die schreibenden API-Routen nur im Tailnet über
-`tailscale serve`. Damit ist die Eingabe von außen gar nicht erreichbar,
-unabhängig vom PIN.
+**Die gesamte Anwendung läuft über den Tailscale Funnel**, auch das
+Control-Panel. Die ursprünglich vorgesehene Netzwerkgrenze (`/control` nur im
+Tailnet) ist damit aufgegeben: die Eingabe soll von Geräten der Einrichtung aus
+bedienbar sein, ohne diese dauerhaft ins Tailnet aufzunehmen. Der PIN ist
+dadurch der einzige Zugriffsschutz und muss ein Zufallswert sein, kein
+gewählter.
+
+Daraus folgt die Grenze in `routes/index.ts`:
+
+| Ohne Token                  | Mit Token                                    |
+| --------------------------- | -------------------------------------------- |
+| `GET /api/board/:slug`      | alles andere, **auch lesend**                |
+| `POST /api/auth`, `/health` | `/players`, `/scores`, `/teams`, `/games`, … |
+| `/uploads/*`, Socket-Räume  | `/leaderboard`, `/tournaments`, `/uploads`   |
+
+Ein Besucher sieht das Board und sonst nichts — kein Spielerverzeichnis, keine
+Rohdaten. `requireAdmin` hängt einmal zentral, damit keine neue Route offen
+bleiben kann.
+
+`POST /api/auth` zählt Fehlversuche je Absender (20) und über alle zusammen
+(200) in einem 10-Minuten-Fenster und antwortet danach mit `429`. Bewusst
+großzügig: gegen einen zufälligen PIN hilft engeres Zählen nicht, aber eine
+Sperre weist auch den richtigen PIN ab. Ein bereits angemeldetes Gerät bleibt
+davon unberührt, weil die Bremse nur an der Anmeldung hängt.
+
+**Turniere lassen sich über die API nicht löschen.** Die Kaskade räumt Teams,
+Games und Scores mit ab; das ist über einen öffentlich erreichbaren Endpunkt
+kein vertretbares Risiko. Der Service dafür existiert und wird von Hand aus
+einem Skript auf dem Server aufgerufen.
+
+**Was der Entwurf ausdrücklich nicht leistet:** Es gibt keinen Besitzer eines
+Turniers und keine Mandanten. Wer den PIN hat, darf alles — auch die Turniere
+anderer. Eine Instanz gehört einem Veranstalter. Alles darüber hinaus wäre ein
+Datenmodell-Umbau (siehe §14).
 
 ---
 
@@ -370,35 +400,42 @@ gehosteten Cluster.
 
 ### Fertig
 
-| Bereich         | Wo                                                                                                 |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| Wertungslogik   | `services/rank.ts`, `points.ts`, `standings.ts`, `announce.ts` — alle vier aus §4.5, testgetrieben |
-| Payload-Vertrag | `shared/schemas.ts`: `BoardStateSchema`, `AnnouncementSchema`, Socket-Events aus §5                |
-| Datenmodell     | Tournament, Team, Player, Game, Score — Schemas, Modelle, Indizes                                  |
-| REST            | `/api/tournaments`, `/api/teams?tournamentId=…` neu; Games, Players, Scores, Leaderboard umgebaut  |
-| Formatierung    | `shared/format.ts` — `formatMetricValue`, von Client und Server genutzt                            |
-| Seed            | `server/src/seed.ts`                                                                               |
+| Bereich         | Wo                                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| Wertungslogik   | `services/rank.ts`, `points.ts`, `standings.ts`, `announce.ts` — alle vier aus §4.5, testgetrieben    |
+| Payload-Vertrag | `shared/schemas.ts`: `BoardStateSchema`, `AnnouncementSchema`, Socket-Events aus §5                   |
+| Datenmodell     | Tournament, Team, Player, Game, Score — Schemas, Modelle, Indizes                                     |
+| REST            | `/api/tournaments`, `/api/teams?tournamentId=…` neu; Games, Players, Scores, Leaderboard umgebaut     |
+| Formatierung    | `shared/format.ts` — `formatMetricValue`, von Client und Server genutzt                               |
+| Seed            | `server/src/seed.ts`                                                                                  |
+| Board-Zustand   | `services/board.service.ts` + `GET /api/board/:slug` — Verkettung der vier Rule-Module                |
+| Sprüche         | `content/announcements.de.json` + `createPicker()` (zufällig, wiederholungsfrei)                      |
+| Realtime        | `realtime/index.ts` — Räume, `emitBoardUpdate`, `emitTournamentStatus`, verdrahtet in den Controllern |
+| Zugriffsschutz  | `services/auth.service.ts`, `middleware/auth.ts`, `POST /api/auth` — HMAC-Token, Anmeldebremse, §9    |
+| Upload          | `middleware/upload.ts` + `services/upload.service.ts` — 2 MB, PNG/JPEG/WebP → 128×128 PNG             |
 
 `rank.ts` gruppiert über `entrantId` und wertet damit Spieler- wie
 Team-Turniere. `points.ts` verlässt sich auf eine monoton fallende
 `pointsTable`; erzwungen wird das im Zod-Schema **und** im Mongoose-Validator,
 nicht im Rule-Modul.
 
-### Als Nächstes, in dieser Reihenfolge
+Gerechnet wird über **alle** Games eines Turniers, auf dem Board stehen nur
+die gepinnten. Teilnehmer sind im Team-Modus die gemeldeten Teams (auch ohne
+Ergebnis), im Spieler-Modus alle mit mindestens einem Score — Spieler sind
+global und haben keine Turniermeldung.
 
-1. **Board-Service** (`services/board.service.ts`): lädt Turnier, Teilnehmer,
-   Games und Scores, verkettet `rank` → `points` → `standings` und baut den
-   `BoardState`. Kein Rule-Modul, also kein TDD. Name und Bild je Teilnehmer
-   kommen hier dazu — `standings.ts` liefert nur die gerechneten Felder.
-2. **Spruch-Pool** `server/src/content/announcements.de.json` plus der Zieher,
-   der `announce`s `pick` erfüllt: zufällig, ohne Wiederholung, solange
-   ungenutzte Varianten übrig sind. Der Zustand dafür liegt im Zieher, nicht
-   im Rule-Modul.
-3. **Socket-Layer** `server/src/realtime/`: Räume `tournament:<id>`, Emitter
-   `emitBoardUpdate`, Verdrahtung im Score-Controller. Emittiert wird nur von
-   dort (KONVENTIONEN §8).
-4. **Upload** (`multer` + `sharp`) und **Auth** (`requireAdmin`, `ADMIN_PIN`).
-5. **Oberfläche:** `/board`, `/control`, `/result`.
+`requireAdminForWrites` hängt einmal zentral in `routes/index.ts` vor allen
+Routen außer `/auth`: GET, HEAD und OPTIONS gehen durch, alles andere braucht
+das Token. Bildfelder nehmen laut `ImageUrlSchema` eine externe URL **oder**
+einen Pfad unter `/uploads/` — genau das, was der eigene Upload ausgibt.
+
+### Als Nächstes
+
+**Oberfläche:** `/board`, `/control`, `/result`. `socket.io-client` liegt
+bereits im Client-`package.json`, der Vite-Proxy leitet `/socket.io`
+inklusive Upgrade und `/uploads` weiter. Token und PIN-Eingabe stehen
+(`lib/auth.ts`, `PinLock`), die Anmeldung wandert mit `/control` an ihren
+richtigen Platz.
 
 ### Noch nicht angefasst
 
@@ -407,7 +444,9 @@ nicht im Rule-Modul.
   Games brauchen einen Turnier-Picker im Formular, Scores erben Turnier und
   `entrantType` vom Game. **Teamwertungen kann sie nicht eintragen** — das
   Seed-Beispiel läuft deshalb im `player`-Modus.
-- Kein Socket, kein Upload, kein Admin-PIN.
+- Der Socket verteilt, aber noch hört niemand zu: es gibt keinen Client, der
+  `room:join` schickt.
+- Die PIN-Eingabe sitzt vorerst als Feld in der Navbar der alten Oberfläche.
 
 Bestehendes bleibt bestehen: die REST-Struktur, `toJSONOptions`, die
 Zod-Schemas als geteilte Wahrheit zwischen Client und Server, React Query als
