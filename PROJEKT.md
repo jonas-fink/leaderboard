@@ -381,16 +381,20 @@ in Tokens übersetzt.
 Eigener Ubuntu-Server (Lenovo-Notebook, Dauerbetrieb per SSH, Deckel zu),
 Docker über Portainer, Deploys über GitHub-Runner.
 
-**Compose-Dienste:** `mongo`, `server` (Node/Express/Socket.IO),
-`client` (statisches Vite-Build hinter einem Reverse Proxy).
+**Ein Compose-Dienst:** `leaderboard` (Node/Express/Socket.IO). Derselbe
+Express liefert das gebaute Vite-Frontend aus `dist/` aus, sobald `CLIENT_DIR`
+gesetzt ist — das spart Reverse Proxy und zweiten Container und hält alles
+same-origin wie der Dev-Proxy. Die Datenbank liegt bei Atlas, also gibt es
+keinen `mongo`-Dienst; gemessene Latenz ~20 ms je Query, für ein Board mit ein
+paar hundert Schreibvorgängen pro Abend unerheblich. Der Preis ist, dass das
+Board ohne Internet steht — ein lokaler `mongo`-Dienst wäre der Plan B, falls
+die Leitung am Venue unsicher ist.
 
-**Named Volumes — beide zwingend**, sonst sind die Daten nach dem nächsten
-Rebuild weg:
+**Named Volume — zwingend**, sonst sind die Bilder nach dem nächsten Rebuild
+weg: `uploads` → das Upload-Verzeichnis des Servers.
 
-- `mongo-data` → `/data/db`
-- `uploads` → das Upload-Verzeichnis des Servers
-
-**Erreichbarkeit:** Tailscale Funnel auf Port 443, dahinter der Reverse Proxy.
+**Erreichbarkeit:** Tailscale Funnel auf Port 443, weitergereicht an 4000 auf
+localhost.
 Funnel muss einmalig in der Tailnet-Policy freigeschaltet werden
 (`nodeAttrs` mit `funnel`); öffentlich verfügbar sind nur 443, 8443 und 10000.
 

@@ -1,0 +1,17 @@
+services:
+    leaderboard:
+        build: .
+        restart: unless-stopped
+        env_file: server/.env
+        environment:
+            # Überschreibt die Pfade aus der .env: im Container liegen sie absolut.
+            UPLOAD_DIR: /app/uploads
+            CLIENT_DIR: /app/dist
+        # Nur auf localhost — nach außen geht ausschließlich der Funnel.
+        ports:
+            - '127.0.0.1:4000:4000'
+        volumes:
+            - uploads:/app/uploads
+
+volumes:
+    uploads:

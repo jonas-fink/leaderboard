@@ -1,0 +1,18 @@
+# Deploy auf den eigenen Ubuntu-Server (PROJEKT.md §11). Der self-hosted
+# Runner läuft dort, also ist "deployen" nur ein compose up im Checkout.
+name: deploy
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+jobs:
+    deploy:
+        runs-on: self-hosted
+        steps:
+            - uses: actions/checkout@v4
+            # Die Secrets bleiben auf dem Server und kommen nie durch GitHub.
+            - run: cp /srv/leaderboard/server.env server/.env
+            - run: docker compose up -d --build
+            - run: docker image prune -f

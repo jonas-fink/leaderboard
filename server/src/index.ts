@@ -1,5 +1,6 @@
 import express from 'express';
 import { createServer } from 'node:http';
+import { join } from 'node:path';
 import { config } from '#config';
 import { connectDb } from '#db';
 import { apiRouter } from '#routes';
@@ -18,6 +19,15 @@ app.use(express.json());
 // gemounteten Verzeichnis (§8) und sind offen lesbar wie das Board selbst.
 app.use('/uploads', express.static(config.uploadDir));
 app.use('/api', apiRouter);
+// Im Container liegt das gebaute Frontend daneben und wird von hier
+// ausgeliefert; lokal übernimmt das der Vite-Dev-Server.
+if (config.clientDir) {
+    app.use(express.static(config.clientDir));
+    // Alles Übrige ist eine Client-Route: index.html, der Router entscheidet.
+    app.get(/.*/, (_req, res) => {
+        res.sendFile(join(config.clientDir!, 'index.html'));
+    });
+}
 app.use(notFoundHandler);
 // Express 5 leitet abgelehnte Promises aus Handlern selbst hierher weiter,
 app.use(errorHandler);

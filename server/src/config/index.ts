@@ -14,6 +14,8 @@ export const config = {
     adminPin: required('ADMIN_PIN'),
     /** Gemountetes Verzeichnis für Avatare und Banner (§8). */
     uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
+    /** Gebautes Frontend. Nur im Container gesetzt; lokal macht das Vite. */
+    clientDir: process.env.CLIENT_DIR,
     /** Gültigkeit eines Admin-Tokens. Ein Event dauert einen Abend. */
     tokenTtlMs: 12 * 60 * 60 * 1000,
 } as const;
