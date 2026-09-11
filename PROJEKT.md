@@ -395,7 +395,9 @@ weg: `uploads` → das Upload-Verzeichnis des Servers.
 
 **Erreichbarkeit:** Tailscale Funnel auf Port 8443, weitergereicht an 4000 auf
 localhost — 443 belegt der Nachbardienst sokorefactor (lokal 8080). Öffentlich
-also `https://jonas-lenovo-ideapad-320-15ikb.tail2593e2.ts.net:8443`.
+also `https://jonasdev.tail2593e2.ts.net:8443`. Wird der Node umbenannt, hängt
+die Funnel-Konfiguration am alten Namen und jeder TLS-Handshake bricht ab —
+dann hilft nur `tailscale serve reset` und beide Regeln neu setzen.
 Funnel muss einmalig in der Tailnet-Policy freigeschaltet werden
 (`nodeAttrs` mit `funnel`); öffentlich verfügbar sind nur 443, 8443 und 10000.
 
