@@ -1,0 +1,360 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Scoreboard Future Space Kassel",
+    "output": "scoreboard-architektur.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/jonas-fink/leaderboard",
+      "provider": "github",
+      "revision": "ced738239bf03cf893359b49ff5e31c65bd1c237"
+    },
+    "views": [
+      {
+        "id": "eingabe-bis-db",
+        "label": "Punkt eintragen",
+        "focus": [
+          "control",
+          "funnel",
+          "express",
+          "guard",
+          "scoring",
+          "atlas"
+        ],
+        "note": "Der Weg eines Ergebnisses vom Tablet bis in die Datenbank."
+      },
+      {
+        "id": "rueckweg-leinwand",
+        "label": "Rückweg zur Leinwand",
+        "focus": [
+          "scoring",
+          "realtime",
+          "board"
+        ],
+        "note": "Neuer Board-Zustand und Toasts erreichen die Leinwand ohne Refresh."
+      },
+      {
+        "id": "zugriffsschutz",
+        "label": "Zugriffsschutz",
+        "focus": [
+          "funnel",
+          "express",
+          "guard",
+          "board"
+        ],
+        "note": "Öffentlich ist nur /api/board — alles andere verlangt ein Token."
+      }
+    ],
+    "viewBox": [
+      1260,
+      680
+    ]
+  },
+  "components": [
+    {
+      "id": "control",
+      "type": "frontend",
+      "label": "Control-Panel",
+      "sublabel": "Tablet · /control",
+      "tag": "PIN → Bearer-Token",
+      "pos": [
+        40,
+        130
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "src/pages/Scoring.tsx"
+        },
+        {
+          "path": "src/lib/auth.ts"
+        }
+      ]
+    },
+    {
+      "id": "board",
+      "type": "frontend",
+      "label": "Board-Ansicht",
+      "sublabel": "Leinwand · /board/:slug",
+      "tag": "ohne Anmeldung",
+      "pos": [
+        40,
+        410
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "src/pages/Board.tsx"
+        },
+        {
+          "path": "src/hooks/useBoard.ts"
+        }
+      ]
+    },
+    {
+      "id": "funnel",
+      "type": "security",
+      "label": "Tailscale Funnel",
+      "sublabel": ":8443 → 127.0.0.1:4000",
+      "tag": "TLS",
+      "pos": [
+        250,
+        270
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "compose.yaml"
+        }
+      ]
+    },
+    {
+      "id": "express",
+      "type": "backend",
+      "label": "Express 5",
+      "sublabel": "ein Prozess :4000",
+      "tag": "liefert auch dist/",
+      "pos": [
+        510,
+        270
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "server/src/index.ts"
+        }
+      ]
+    },
+    {
+      "id": "guard",
+      "type": "security",
+      "label": "requireAdmin",
+      "sublabel": "je Request, auch lesend",
+      "pos": [
+        790,
+        100
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "server/src/middleware/auth.ts"
+        },
+        {
+          "path": "server/src/routes/index.ts"
+        }
+      ]
+    },
+    {
+      "id": "scoring",
+      "type": "backend",
+      "label": "Wertungslogik",
+      "sublabel": "rank · points · standings",
+      "tag": "je Abruf neu gerechnet",
+      "pos": [
+        790,
+        270
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "server/src/services/board.service.ts"
+        },
+        {
+          "path": "server/src/services/standings.ts"
+        }
+      ]
+    },
+    {
+      "id": "atlas",
+      "type": "database",
+      "label": "MongoDB Atlas",
+      "sublabel": "DB leaderboard",
+      "pos": [
+        1050,
+        270
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "server/src/db/connect.ts"
+        }
+      ]
+    },
+    {
+      "id": "realtime",
+      "type": "messagebus",
+      "label": "Socket.IO",
+      "sublabel": "ein Raum je Turnier",
+      "pos": [
+        790,
+        500
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "server/src/realtime/index.ts"
+        }
+      ]
+    },
+    {
+      "id": "uploads",
+      "type": "cloud",
+      "label": "Volume uploads",
+      "sublabel": "sharp · max 2 MB",
+      "pos": [
+        1050,
+        100
+      ],
+      "size": [
+        150,
+        66
+      ],
+      "sources": [
+        {
+          "path": "server/src/middleware/upload.ts"
+        },
+        {
+          "path": "server/src/services/upload.service.ts"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Ubuntu-Server · Compose-Dienst leaderboard",
+      "wraps": [
+        "express",
+        "guard",
+        "scoring",
+        "realtime",
+        "uploads"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "control-https",
+      "from": "control",
+      "to": "funnel",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "board-https",
+      "from": "board",
+      "to": "funnel",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "funnel-proxy",
+      "from": "funnel",
+      "to": "express",
+      "label": "X-Forwarded-For",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-geschuetzt",
+      "from": "express",
+      "to": "guard",
+      "label": "/api/* mit Bearer-Token",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "board-oeffentlich",
+      "from": "express",
+      "to": "scoring",
+      "label": "/api/board ohne Token"
+    },
+    {
+      "id": "guard-services",
+      "from": "guard",
+      "to": "scoring",
+      "label": "Controller → Services",
+      "labelDy": 72
+    },
+    {
+      "id": "mongoose",
+      "from": "scoring",
+      "to": "atlas",
+      "label": "Mongoose"
+    },
+    {
+      "id": "emit",
+      "from": "scoring",
+      "to": "realtime",
+      "label": "emitBoardUpdate()",
+      "labelDy": 102
+    },
+    {
+      "id": "push",
+      "from": "realtime",
+      "to": "board",
+      "label": "board:update · event:announce",
+      "variant": "dashed"
+    },
+    {
+      "id": "bilder-schreiben",
+      "from": "guard",
+      "to": "uploads",
+      "label": "sharp → Volume"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Getrennte Geräte",
+      "items": [
+        "Leinwand öffnet /board/:slug und wird den Abend nicht angefasst",
+        "Tablet trägt unter /control Ergebnisse ein",
+        "Zwischen beidem liegt kein manueller Refresh"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Ein Prozess",
+      "items": [
+        "Express liefert API, Socket.IO und das gebaute Frontend aus demselben Port",
+        "Node führt die .ts-Dateien direkt aus, kein Build-Schritt",
+        "Kein Reverse Proxy, kein CORS — alles same-origin"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Zugriff",
+      "items": [
+        "requireAdmin sperrt alles außer /api/board, auch das Lesen",
+        "Token aus ADMIN_PIN, im localStorage statt im Cookie",
+        "TLS und öffentliche Adresse kommen vom Funnel"
+      ]
+    }
+  ]
+}
