@@ -67,6 +67,10 @@ const GameFields = z.object({
     // Reihenfolge in der Board-Rotation.
     boardOrder: z.number().int().nonnegative(),
     status: GameStatusSchema,
+    // Ende des Countdowns auf dem Board. Gesetzt beim Start der Disziplin
+    // (jetzt + Dauer), `null` räumt ihn wieder ab — deshalb nullable und
+    // nicht nur optional: ein PATCH muss ihn löschen können.
+    endsAt: z.iso.datetime().nullable().optional(),
 });
 
 // Game Schema (Antwort — der Server liefert die Defaults immer mit)
@@ -380,6 +384,8 @@ export const BoardGameSchema = z.object({
         scoring: true,
     }),
     status: GameStatusSchema,
+    /** Ziel des Countdowns, solange die Disziplin läuft. */
+    endsAt: z.iso.datetime().nullable().optional(),
     entries: z.array(BoardGameEntrySchema),
 });
 

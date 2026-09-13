@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import PixelSprite from './PixelSprite';
 import { formatMetricValue } from '../../utils';
 import type { BoardGame, BoardState } from '../../schemas';
@@ -14,6 +15,39 @@ const STATUS = {
     running: { label: 'LÄUFT', tone: 'border-cyan text-cyan' },
     finished: { label: 'BEENDET', tone: 'border-gold text-gold' },
 } as const;
+
+const secondsUntil = (iso: string) =>
+    Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 1000));
+
+/** mm:ss, über einer Stunde eben 75:00 — auf der Leinwand liest sich das
+ *  besser als 1:15:00, und länger als eine Runde dauert selten. */
+const mmss = (seconds: number) =>
+    `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+
+/**
+ * Die Restzeit der laufenden Disziplin. Tickt lokal gegen `endsAt` statt
+ * gegen einen Serverwert: der Zielzeitpunkt steht fest, also braucht die
+ * Sekunde keinen Roundtrip. Eigene Komponente, damit der Sekundentakt nur
+ * diese Zeile neu rendert und nicht die ganze Karte samt Sprites.
+ *
+ * Ein neues `endsAt` kommt über den `key` am Aufruf herein und mountet die
+ * Komponente neu — der Startwert steht damit im Initializer statt in einem
+ * Effekt, der beim ersten Lauf noch einmal nachsetzen müsste.
+ *
+ * ponytail: keine Uhrzeit-Synchronisation mit dem Server. Der Beamer-Rechner
+ * und der Server müssten dafür Sekunden auseinanderliegen — fällt das je auf,
+ * schickt der Server seine `now` im Board-Payload mit.
+ */
+const Countdown = ({ endsAt }: { endsAt: string }) => {
+    const [left, setLeft] = useState(() => secondsUntil(endsAt));
+
+    useEffect(() => {
+        const tick = setInterval(() => setLeft(secondsUntil(endsAt)), 1_000);
+        return () => clearInterval(tick);
+    }, [endsAt]);
+
+    return <>{left > 0 ? mmss(left) : 'ZEIT UM'}</>;
+};
 
 /** Eine Disziplin-Karte im 2×2-Raster (§6): die drei besten Plätze. */
 const GamePanel = ({ game, standings }: GamePanelProps) => {
@@ -44,6 +78,12 @@ const GamePanel = ({ game, standings }: GamePanelProps) => {
                     style={{ fontSize: 'calc(var(--u) * 11)' }}
                 >
                     {status.label}
+                    {game.status === 'running' && game.endsAt && (
+                        <>
+                            {' · '}
+                            <Countdown key={game.endsAt} endsAt={game.endsAt} />
+                        </>
+                    )}
                 </div>
             </div>
 

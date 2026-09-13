@@ -31,6 +31,9 @@ export const queryKeys = {
     playerStats: (id: string, tournamentId: string) =>
         ['player-stats', id, tournamentId] as const,
     playerStatsAll: (id: string) => ['player-stats', id] as const,
+    /** Wie `leaderboardsAll`, nur für die Spielerstatistik: im Team-Modus
+     *  gilt ein Ergebnis für jedes Mitglied, nicht für einen Spieler. */
+    playerStatsEvery: ['player-stats'] as const,
     board: (userSlug: string, slug: string, allGames: boolean) =>
         ['board', userSlug, slug, allGames] as const,
     teams: (tournamentId: string) => ['teams', tournamentId] as const,
@@ -228,19 +231,19 @@ export const useSubmitScore = () => {
     return useMutation({
         mutationFn: (input: SubmitScoreInput) => api.submitScore(input),
         onSuccess: (_score, input) => {
+            // Die Liste "Letzte Wertungen" auf /control liest aus dieser
+            // Query — ohne sie stand dort bis zum nächsten Reload der alte
+            // Stand.
+            qc.invalidateQueries({
+                queryKey: queryKeys.scores(input.tournamentId),
+            });
             qc.invalidateQueries({
                 queryKey: queryKeys.leaderboards(input.tournamentId),
             });
-            // Team-Scores haben keine playerId — dann gibt es auch keine
-            // Spielerstatistik, die veralten könnte.
-            if (input.playerId) {
-                qc.invalidateQueries({
-                    queryKey: queryKeys.playerStats(
-                        input.playerId,
-                        input.tournamentId,
-                    ),
-                });
-            }
+            // Präfix statt gezielt: im Team-Modus trägt der Score keine
+            // playerId, die Medaillen des Teams gelten aber für jedes
+            // Mitglied.
+            qc.invalidateQueries({ queryKey: queryKeys.playerStatsEvery });
         },
     });
 };
@@ -327,10 +330,15 @@ export const useCreateMatch = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (input: SubmitMatchInput) => api.createMatch(input),
-        onSuccess: (match) =>
+        onSuccess: (match) => {
+            qc.invalidateQueries({ queryKey: queryKeys.matches(match.gameId) });
+            // Ein Match verschiebt Tabelle und Medaillen genauso wie ein
+            // Score — nur das Board bekommt seinen Stand über den Socket.
             qc.invalidateQueries({
-                queryKey: queryKeys.matches(match.gameId),
-            }),
+                queryKey: queryKeys.leaderboards(match.tournamentId),
+            });
+            qc.invalidateQueries({ queryKey: queryKeys.playerStatsEvery });
+        },
     });
 };
 

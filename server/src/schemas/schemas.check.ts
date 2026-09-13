@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CreateTournamentSchema, CreateGameSchema } from '#schemas';
+import {
+    CreateTournamentSchema,
+    CreateGameSchema,
+    UpdateGameSchema,
+} from '#schemas';
 
 const turnier = (überschreiben: Record<string, unknown> = {}) => ({
     slug: 'retro-night',
@@ -82,4 +86,26 @@ test('versus mit sortOrder ASC wird abgelehnt (AC-1.2)', () => {
 test('versus mit sortOrder DESC wird angenommen', () => {
     const parsed = CreateGameSchema.parse(spiel({ scoring: 'versus' }));
     assert.equal(parsed.scoring, 'versus');
+});
+
+// Der Countdown auf dem Board hängt an `endsAt` (PROJEKT.md §6). Die Karte im
+// Control-Panel setzt ihn beim Start und schickt beim Zurückschalten
+// ausdrücklich `null` — wäre das Feld nur `.optional()`, ginge genau dieser
+// Weg mit einer 400 zu Ende, und zwar mitten im Event.
+test('endsAt lässt sich per PATCH auf null zurücksetzen', () => {
+    const parsed = UpdateGameSchema.parse({
+        status: 'upcoming',
+        endsAt: null,
+    });
+    assert.equal(parsed.endsAt, null);
+});
+
+test('endsAt nimmt einen ISO-Zeitpunkt an und lehnt alles andere ab', () => {
+    const iso = '2026-10-01T19:15:00.000Z';
+    assert.equal(UpdateGameSchema.parse({ endsAt: iso }).endsAt, iso);
+    assert.equal(UpdateGameSchema.safeParse({ endsAt: '15' }).success, false);
+});
+
+test('ein Game ohne endsAt bleibt gültig — der Countdown ist freiwillig', () => {
+    assert.equal(CreateGameSchema.parse(spiel()).endsAt, undefined);
 });

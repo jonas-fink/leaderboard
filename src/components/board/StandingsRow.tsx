@@ -4,6 +4,12 @@ import type { StandingsEntry } from '../../schemas';
 
 interface StandingsRowProps {
     entry: StandingsEntry;
+    /**
+     * Feste Zeilenhöhe statt "teilt euch das Panel". Gilt, sobald die Wertung
+     * blättert: eine halbvolle letzte Seite hätte sonst sichtbar höhere
+     * Zeilen als die erste.
+     */
+    fixedHeight?: boolean;
 }
 
 /**
@@ -14,7 +20,7 @@ interface StandingsRowProps {
  * `layout` animiert die Positionsänderung; die Balkenlänge läuft mit
  * derselben Dauer, damit Sprung und Balken eine Bewegung sind.
  */
-const StandingsRow = ({ entry }: StandingsRowProps) => {
+const StandingsRow = ({ entry, fixedHeight }: StandingsRowProps) => {
     const leading = entry.rank === 1;
     // Wer weniger Bewegung will, bekommt keinen Sprung, sondern eine Blende
     // (KONVENTIONEN §9.3): kein `layout`, kürzere Dauer, nur Deckkraft.
@@ -27,10 +33,12 @@ const StandingsRow = ({ entry }: StandingsRowProps) => {
         <motion.div
             layout={!calm}
             transition={move}
-            // Die Zeilen teilen sich die Höhe des Panels, statt sie fest zu
-            // beanspruchen: die Zahl der Teilnehmer steht erst am Eventabend
-            // fest, und eine feste Höhe schneidet die letzte Zeile ab.
-            className={`flex min-h-0 shrink grow basis-96 items-center gap-16 border-2 px-16 ${
+            // Passt alles auf eine Seite, teilen sich die Zeilen die Höhe des
+            // Panels — bei drei Teams sind die Zeilen dann groß und der Rahmen
+            // voll. Erst beim Blättern wird die Höhe fest, siehe `fixedHeight`.
+            className={`flex items-center gap-16 border-2 px-16 ${
+                fixedHeight ? 'h-96 shrink-0' : 'min-h-0 shrink grow basis-96'
+            } ${
                 leading
                     ? 'border-gold bg-gold/15 shadow-[0_0_24px_rgb(255_210_63/0.28)]'
                     : 'border-line bg-surface-2/60'

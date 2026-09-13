@@ -205,6 +205,7 @@ export const buildBoardState = async (
                     scoring: game.scoring,
                 },
                 status: game.status,
+                endsAt: game.endsAt,
                 entries,
             })),
         computedAt: new Date().toISOString(),
@@ -231,9 +232,12 @@ export const boardBySlugs = async (
 };
 
 /** Für die Realtime-Schicht — die Räume und die Scores tragen die ID. */
-export const boardById = async (id: string): Promise<BoardState> => {
+export const boardById = async (
+    id: string,
+    allGames = false,
+): Promise<BoardState> => {
     const tournament = await getTournament(id);
     const owner = await User.findById(tournament.ownerId);
     if (!owner) throw notFound('Konto');
-    return buildBoardState(tournament, owner.slug);
+    return buildBoardState(tournament, owner.slug, allGames);
 };

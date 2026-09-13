@@ -1,6 +1,9 @@
 import { rankScores, withPlayers } from '#services/rank';
 import { listGames, getGameBySlug } from '#services/game.service';
 import { getPlayer, getPlayerMap } from '#services/player.service';
+import { boardById } from '#services/board.service';
+import { getTournament } from '#services/tournament.service';
+import { listTeams } from '#services/team.service';
 import {
     scoresByGame,
     playerHistory,
@@ -72,27 +75,44 @@ export const getChartBySlug = async (
  * Medaillenspiegel + Historie eines Spielers innerhalb eines Turniers.
  * Die Medaillen werden aus den aktuellen Rängen berechnet, nicht gespeichert —
  * so kann kein Zähler veralten, wenn Scores korrigiert werden.
+ *
+ * Gezählt wird über `boardById`, nicht über `buildCharts`: der Board-Zustand
+ * kennt beide Ergebnisformen (Scores **und** Matches) und beide Turniermodi.
+ * `buildCharts` liest nur Scores und filtert über `withPlayers` alles ohne
+ * `playerId` weg — in einem Team-Turnier und in jeder Versus-Disziplin kam
+ * damit immer 0 heraus. `allGames`, weil auch eine ungepinnte Disziplin
+ * Medaillen vergibt.
  */
-
 export const getPlayerStats = async (
     playerId: string,
     tournamentId: string,
     ownerId: string,
 ): Promise<PlayerStats> => {
-    const [player, games, recentScores, totalScores] = await Promise.all([
-        getPlayer(playerId, ownerId),
-        listGames(tournamentId),
-        playerHistory(playerId, tournamentId),
-        countScores({ playerId, tournamentId }),
-    ]);
+    const [player, tournament, board, recentScores, totalScores] =
+        await Promise.all([
+            getPlayer(playerId, ownerId),
+            getTournament(tournamentId),
+            boardById(tournamentId, true),
+            playerHistory(playerId, tournamentId),
+            countScores({ playerId, tournamentId }),
+        ]);
 
-    const charts = await buildCharts(games, ownerId);
+    // Im Team-Modus steht der Spieler selbst in keiner Wertung — es zählt der
+    // Rang des Teams, in dem er gemeldet ist. `String(...)`, weil `members`
+    // in-process noch ObjectIds trägt und erst über die HTTP-Grenze zu
+    // Strings wird.
+    const entrantId =
+        tournament.mode === 'team'
+            ? (await listTeams(tournamentId)).find((team) =>
+                  team.members.some((member) => String(member) === playerId),
+              )?.id
+            : playerId;
 
     const medals = { gold: 0, silver: 0, bronze: 0 };
     let gamesPlayed = 0;
 
-    for (const chart of charts) {
-        const entry = chart.topEntries.find((e) => e.playerId === playerId);
+    for (const game of entrantId ? board.games : []) {
+        const entry = game.entries.find((e) => e.entrantId === entrantId);
         if (!entry) continue;
         gamesPlayed += 1;
         if (entry.rank === 1) medals.gold += 1;

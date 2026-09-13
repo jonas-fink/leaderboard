@@ -56,6 +56,9 @@ const gameSchema = new Schema(
             enum: ['upcoming', 'running', 'finished'],
             default: 'upcoming',
         },
+        // Ziel des Board-Countdowns. Wird beim Start der Disziplin gesetzt
+        // und beim Zurückschalten auf null geräumt.
+        endsAt: { type: Date, default: null },
     },
     { timestamps: true, toJSON: toJSONOptions },
 );

@@ -3,7 +3,7 @@ import { MdOutlineAdd } from 'react-icons/md';
 import { GameCard, GameFormModal } from '../components';
 import { useGames, useUpdateGame } from '../hooks';
 import { useTournamentContext } from '../hooks/useTournamentContext';
-import type { Game } from '../schemas';
+import type { Game, UpdateGameInput } from '../schemas';
 
 const Games = () => {
     const { tournament } = useTournamentContext();
@@ -17,6 +17,11 @@ const Games = () => {
 
     const togglePin = (game: Game) =>
         updateGame.mutate({ id: game.id, patch: { pinned: !game.pinned } });
+
+    // Der Controller sendet nach jedem PATCH `board:update` — die Leinwand
+    // bekommt Status und Countdown also ohne zweiten Handgriff.
+    const setStatus = (game: Game, patch: UpdateGameInput) =>
+        updateGame.mutate({ id: game.id, patch });
 
     const pinnedCount = games?.filter((game) => game.pinned).length ?? 0;
 
@@ -61,6 +66,7 @@ const Games = () => {
                         game={game}
                         onTogglePin={togglePin}
                         onEdit={setEditing}
+                        onSetStatus={setStatus}
                         pinPending={
                             updateGame.isPending &&
                             updateGame.variables?.id === game.id
