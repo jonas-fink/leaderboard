@@ -1,41 +1,53 @@
 import { config } from '#config';
 import { connectDb, disconnectDb } from '#db';
+import { User } from '#models';
 import {
     getTournamentBySlug,
     deleteTournament,
 } from '#services/tournament.service';
+import { notFound } from '#utils';
 
 /**
- * Löscht ein Turnier samt Teams, Games und Scores.
+ * Löscht ein Turnier samt Teams, Games, Scores und Matches.
  *
- * Diese Kaskade hängt bewusst an keiner Route: die Anwendung steht öffentlich
- * hinter dem Funnel, und ein erratener PIN wäre damit nicht ein falscher
- * Punktestand, sondern das Ende des Events (PROJEKT.md §9). Wer löschen will,
- * hat Zugriff auf den Server — und tippt es dort.
+ * Der Slug ist seit specs/002-benutzerkonten nur je Konto eindeutig
+ * (AC-3.4) — deshalb braucht das Skript die E-Mail des Kontos, um das
+ * richtige Turnier zu finden.
  *
- *   npm run tournament:delete -- <slug> --yes
+ *   npm run tournament:delete -- <email> <slug> --yes
  */
-const slug = process.argv[2];
+const email = process.argv[2];
+const slug = process.argv[3];
 const confirmed = process.argv.includes('--yes');
 
-if (!slug || slug.startsWith('--')) {
-    console.error('Aufruf: npm run tournament:delete -- <slug> --yes');
+if (!email || !slug || email.startsWith('--') || slug.startsWith('--')) {
+    console.error(
+        'Aufruf: npm run tournament:delete -- <email> <slug> --yes',
+    );
     process.exit(1);
 }
 
 await connectDb();
-const tournament = await getTournamentBySlug(slug);
+
+const owner = await User.findOne({ email: email.toLowerCase() });
+if (!owner) {
+    await disconnectDb();
+    throw notFound(`Konto "${email}"`);
+}
+
+const tournament = await getTournamentBySlug(slug, owner.id);
 
 if (!confirmed) {
     console.error(
-        `Würde "${tournament.title}" (${slug}) samt Teams, Disziplinen und\n` +
-            `Wertungen aus "${config.dbName}" auf ${new URL(config.mongoUri).host} löschen.\n` +
-            `Wenn das gewollt ist: npm run tournament:delete -- ${slug} --yes`,
+        `Würde "${tournament.title}" (${slug}) von ${email} samt Teams,\n` +
+            `Disziplinen, Wertungen und Matches aus "${config.dbName}" auf\n` +
+            `${new URL(config.mongoUri).host} löschen.\n` +
+            `Wenn das gewollt ist: npm run tournament:delete -- ${email} ${slug} --yes`,
     );
     await disconnectDb();
     process.exit(1);
 }
 
 await deleteTournament(tournament.id);
-console.log(`"${tournament.title}" gelöscht.`);
+console.log(`"${tournament.title}" (${email}) gelöscht.`);
 await disconnectDb();

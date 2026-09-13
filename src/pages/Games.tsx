@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { MdOutlineAdd } from 'react-icons/md';
 import { GameCard, GameFormModal } from '../components';
 import { useGames, useUpdateGame } from '../hooks';
+import { useTournamentContext } from '../hooks/useTournamentContext';
 import type { Game } from '../schemas';
 
 const Games = () => {
-    const { data: games, isLoading, error } = useGames();
+    const { tournament } = useTournamentContext();
+    // Games gehören zu genau einem Turnier (specs/002, BE-8) — ohne
+    // `tournamentId` antwortet der Server 400.
+    const { data: games, isLoading, error } = useGames(tournament?.id);
     const updateGame = useUpdateGame();
 
     // null = Modal zu, undefined = Anlegen, Game = Bearbeiten
@@ -15,6 +19,14 @@ const Games = () => {
         updateGame.mutate({ id: game.id, patch: { pinned: !game.pinned } });
 
     const pinnedCount = games?.filter((game) => game.pinned).length ?? 0;
+
+    if (!tournament) {
+        return (
+            <p className="border-2 border-line bg-surface p-6 text-ink-mute">
+                Es gibt noch kein Turnier. Lege im Reiter TURNIER eines an.
+            </p>
+        );
+    }
 
     return (
         <section className="p-4 md:p-0">

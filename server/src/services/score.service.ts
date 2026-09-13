@@ -57,12 +57,16 @@ type PopulatedGame = {
     primaryMetric: MetricConfig;
 };
 
-/** Score-Historie eines Spielers, angereichert mit Game-Titel und Metrik. */
+/** Score-Historie eines Spielers, angereichert mit Game-Titel und Metrik.
+ *  `tournamentId` ist Pflicht — sonst tauchen Scores aus fremden Turnieren
+ *  (auch von fremden Konten, sofern deren `playerId` je referenziert wurde)
+ *  in der Historie eines Spielers auf. */
 export const playerHistory = async (
     playerId: string,
+    tournamentId: string,
     limit = 20,
 ): Promise<ScoreRecord[]> => {
-    const docs = await Score.find({ playerId })
+    const docs = await Score.find({ playerId, tournamentId })
         .sort({ recordedAt: -1 })
         .limit(limit)
         .populate<{
@@ -92,6 +96,13 @@ export const playerHistory = async (
 
 export const countScores = (filter: ScoreQuery): Promise<number> =>
     Score.countDocuments(filter);
+
+/** Für die Besitzprüfung vor Patch/Delete. */
+export const getScore = async (id: string): Promise<RawScore> => {
+    const doc = await Score.findById(id);
+    if (!doc) throw notFound('Score');
+    return toRaw(doc);
+};
 
 export const createScore = async (
     input: SubmitScoreInput,

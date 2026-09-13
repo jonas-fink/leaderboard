@@ -66,6 +66,7 @@ const board = (
     tournament: {
         id: 't1',
         slug: 'turnier',
+        ownerSlug: 'veranstalter',
         title: 'Turnier',
         mode: 'player',
         status,

@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 // dynamische Import statt eines Imports am Dateikopf (Muster aus
 // auth.check.ts).
 process.env.MONGODB_URI ??= 'mongodb://localhost/test';
-process.env.ADMIN_PIN ??= 'geheim';
+process.env.SESSION_SECRET ??= 'geheim';
 const { Game } = await import('#models');
 
 /**

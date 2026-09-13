@@ -7,17 +7,29 @@ import type {
     UpdateGameInput,
 } from '#types';
 
-/** Ohne Filter alle Games, mit `tournamentId` die eines Turniers. */
-export const listGames = async (tournamentId?: string): Promise<GameType[]> => {
-    const docs = await Game.find(tournamentId ? { tournamentId } : {}).sort({
-        title: 1,
-    });
+/** Immer turnierbezogen — ohne Turnier gibt es keine sinnvolle Abgrenzung
+ *  (specs/002-benutzerkonten, "Löcher"-Tabelle). */
+export const listGames = async (tournamentId: string): Promise<GameType[]> => {
+    const docs = await Game.find({ tournamentId }).sort({ title: 1 });
     return docs.map((doc) => asApi<GameType>(doc));
 };
 
-export const getGameBySlug = async (slug: string): Promise<GameType> => {
-    const doc = await Game.findOne({ slug });
+/** Der Slug ist nur je Turnier eindeutig (AC-3.6) — ohne `tournamentId` liefert
+ *  `findOne` sonst die erstgefundene Disziplin instanzweit. */
+export const getGameBySlug = async (
+    slug: string,
+    tournamentId: string,
+): Promise<GameType> => {
+    const doc = await Game.findOne({ slug, tournamentId });
     if (!doc) throw notFound(`Game "${slug}"`);
+    return asApi<GameType>(doc);
+};
+
+/** Für die Besitzprüfung vor Patch/Delete — der Slug allein reicht dafür
+ *  nicht, weil er nur je Turnier eindeutig ist. */
+export const getGame = async (id: string): Promise<GameType> => {
+    const doc = await Game.findById(id);
+    if (!doc) throw notFound('Game');
     return asApi<GameType>(doc);
 };
 

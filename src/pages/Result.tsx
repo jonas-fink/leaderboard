@@ -27,8 +27,8 @@ const GAME_COLORS = [
  * Gesamtwertung längst stecken, und der Balken ergäbe die Summe nicht.
  */
 const Result = () => {
-    const { tournamentSlug = '' } = useParams();
-    const { board, error } = useBoard(tournamentSlug, true);
+    const { userSlug = '', slug = '' } = useParams();
+    const { board, error } = useBoard(userSlug, slug, true);
 
     if (error || !board) {
         return (

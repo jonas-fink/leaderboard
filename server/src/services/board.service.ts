@@ -11,6 +11,8 @@ import { rankScores } from '#services/rank';
 import { buildTable } from '#services/table';
 import { placementPoints } from '#services/points';
 import { computeStandings } from '#services/standings';
+import { User } from '#models';
+import { notFound } from '#utils';
 import type {
     BoardGameEntry,
     BoardState,
@@ -52,7 +54,9 @@ const loadEntrants = async (
         );
     }
 
-    const players = await getPlayerMap();
+    // Player gehört dem Konto, nicht dem Turnier (AD-8) — der Besitzer des
+    // Turniers ist auch der Besitzer der gemeldeten Spieler.
+    const players = await getPlayerMap(tournament.ownerId);
     const entrants = new Map<string, Entrant>();
     for (const id of scoredIds) {
         const player = players.get(id);
@@ -81,6 +85,8 @@ const loadEntrants = async (
  */
 export const buildBoardState = async (
     tournament: Tournament,
+    /** Konto-Slug des Besitzers — für die öffentliche Board-URL (AC-4.5). */
+    ownerSlug: string,
     /**
      * Die Siegerehrung zeigt jede Disziplin, auch die ungepinnte — sonst
      * fehlen Punkte, die in der Gesamtwertung längst stecken.
@@ -177,6 +183,7 @@ export const buildBoardState = async (
         tournament: {
             id: tournament.id,
             slug: tournament.slug,
+            ownerSlug,
             title: tournament.title,
             mode: tournament.mode,
             status: tournament.status,
@@ -204,13 +211,29 @@ export const buildBoardState = async (
     };
 };
 
-/** Für den REST-Abruf des Boards — die Leinwand kennt nur den Slug. */
-export const boardBySlug = async (
-    slug: string,
+/**
+ * Für den REST-Abruf des Boards — die Leinwand kennt beide Slugs
+ * (`/api/board/:userSlug/:tournamentSlug`, AC-4.1). Öffentlich, ohne
+ * Sitzung: `userSlug` löst das Konto auf, `tournamentSlug` ist nur innerhalb
+ * dieses Kontos eindeutig (AC-4.2). Ein unbekannter Slug ergibt in beiden
+ * Schritten 404 (AC-4.3).
+ */
+export const boardBySlugs = async (
+    userSlug: string,
+    tournamentSlug: string,
     allGames = false,
-): Promise<BoardState> =>
-    buildBoardState(await getTournamentBySlug(slug), allGames);
+): Promise<BoardState> => {
+    const owner = await User.findOne({ slug: userSlug });
+    if (!owner) throw notFound(`Konto "${userSlug}"`);
+
+    const tournament = await getTournamentBySlug(tournamentSlug, owner.id);
+    return buildBoardState(tournament, owner.slug, allGames);
+};
 
 /** Für die Realtime-Schicht — die Räume und die Scores tragen die ID. */
-export const boardById = async (id: string): Promise<BoardState> =>
-    buildBoardState(await getTournament(id));
+export const boardById = async (id: string): Promise<BoardState> => {
+    const tournament = await getTournament(id);
+    const owner = await User.findById(tournament.ownerId);
+    if (!owner) throw notFound('Konto');
+    return buildBoardState(tournament, owner.slug);
+};

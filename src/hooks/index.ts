@@ -11,20 +11,65 @@ import type {
     UpdateTournamentInput,
     CreateTeamInput,
     UpdateTeamInput,
+    LoginInput,
+    RegisterInput,
 } from '../schemas';
 
 export const queryKeys = {
+    me: ['me'] as const,
     tournaments: ['tournaments'] as const,
-    games: ['games'] as const,
+    games: (tournamentId: string) => ['games', tournamentId] as const,
     players: ['players'] as const,
-    leaderboards: ['leaderboard'] as const,
-    leaderboard: (slug: string) => ['leaderboard', slug] as const,
-    playerStats: (id: string) => ['player-stats', id] as const,
-    board: (slug: string, allGames: boolean) =>
-        ['board', slug, allGames] as const,
+    leaderboards: (tournamentId: string) =>
+        ['leaderboard', tournamentId] as const,
+    leaderboard: (slug: string, tournamentId: string) =>
+        ['leaderboard', tournamentId, slug] as const,
+    // Ungebundener Präfix zum Invalidieren, wenn die betroffene tournamentId
+    // beim Aufrufer nicht bekannt ist (Spieler gehören dem Konto, nicht
+    // einem Turnier — anders als bei Games oben).
+    leaderboardsAll: ['leaderboard'] as const,
+    playerStats: (id: string, tournamentId: string) =>
+        ['player-stats', id, tournamentId] as const,
+    playerStatsAll: (id: string) => ['player-stats', id] as const,
+    board: (userSlug: string, slug: string, allGames: boolean) =>
+        ['board', userSlug, slug, allGames] as const,
     teams: (tournamentId: string) => ['teams', tournamentId] as const,
     scores: (tournamentId: string) => ['scores', tournamentId] as const,
     matches: (gameId: string) => ['matches', gameId] as const,
+};
+
+// --- Konto -----------------------------------------------------------------
+
+/** `retry: false`, sonst hängt `RequireSession` auf einer 401 erst die
+ *  Standard-Wiederholung ab, bevor sie auf `/login` umleiten kann. */
+export const useMe = () =>
+    useQuery({ queryKey: queryKeys.me, queryFn: api.fetchMe, retry: false });
+
+export const useLogin = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: LoginInput) => api.login(input),
+        // Die Antwort ist bereits der neue Zustand — kein zweiter Roundtrip.
+        onSuccess: (user) => qc.setQueryData(queryKeys.me, user),
+    });
+};
+
+export const useRegister = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: RegisterInput) => api.register(input),
+        onSuccess: (user) => qc.setQueryData(queryKeys.me, user),
+    });
+};
+
+export const useLogout = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: () => api.logout(),
+        // Der gesamte Cache gehört dem abgemeldeten Konto — ein gezieltes
+        // Invalidieren würde nur das nächste Konto mit fremden Daten starten.
+        onSuccess: () => qc.clear(),
+    });
 };
 
 // --- Queries -------------------------------------------------------------
@@ -35,22 +80,32 @@ export const useTournaments = () =>
         queryFn: api.fetchTournaments,
     });
 
-export const useGames = () =>
-    useQuery({ queryKey: queryKeys.games, queryFn: api.fetchGames });
+/** Games gibt es nur turnierbezogen (specs/002, BE-8). */
+export const useGames = (tournamentId: string | undefined) =>
+    useQuery({
+        queryKey: queryKeys.games(tournamentId ?? ''),
+        queryFn: () => api.fetchGames(tournamentId!),
+        enabled: Boolean(tournamentId),
+    });
 
 export const usePlayers = () =>
     useQuery({ queryKey: queryKeys.players, queryFn: api.fetchPlayers });
 
-export const useLeaderboards = () =>
+export const useLeaderboards = (tournamentId: string | undefined) =>
     useQuery({
-        queryKey: queryKeys.leaderboards,
-        queryFn: api.fetchLeaderboards,
+        queryKey: queryKeys.leaderboards(tournamentId ?? ''),
+        queryFn: () => api.fetchLeaderboards(tournamentId!),
+        enabled: Boolean(tournamentId),
     });
 
-export const useLeaderboard = (slug: string) =>
+export const useLeaderboard = (
+    slug: string,
+    tournamentId: string | undefined,
+) =>
     useQuery({
-        queryKey: queryKeys.leaderboard(slug),
-        queryFn: () => api.fetchLeaderboard(slug),
+        queryKey: queryKeys.leaderboard(slug, tournamentId ?? ''),
+        queryFn: () => api.fetchLeaderboard(slug, tournamentId!),
+        enabled: Boolean(tournamentId),
     });
 
 export const useTeams = (tournamentId: string | undefined) =>
@@ -67,11 +122,14 @@ export const useScores = (tournamentId: string | undefined) =>
         enabled: Boolean(tournamentId),
     });
 
-export const usePlayerStats = (id: string | null) =>
+export const usePlayerStats = (
+    id: string | null,
+    tournamentId: string | undefined,
+) =>
     useQuery({
-        queryKey: queryKeys.playerStats(id ?? ''),
-        queryFn: () => api.fetchPlayerStats(id!),
-        enabled: Boolean(id),
+        queryKey: queryKeys.playerStats(id ?? '', tournamentId ?? ''),
+        queryFn: () => api.fetchPlayerStats(id!, tournamentId!),
+        enabled: Boolean(id) && Boolean(tournamentId),
     });
 
 export const useMatches = (gameId: string | undefined) =>
@@ -92,8 +150,8 @@ export const useCreateGame = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (input: CreateGameInput) => api.createGame(input),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: queryKeys.games });
+        onSuccess: (game) => {
+            qc.invalidateQueries({ queryKey: queryKeys.games(game.tournamentId) });
         },
     });
 };
@@ -103,22 +161,27 @@ export const useUpdateGame = () => {
     return useMutation({
         mutationFn: ({ id, patch }: { id: string; patch: UpdateGameInput }) =>
             api.updateGame(id, patch),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: queryKeys.games });
-            // pinned/Metrik-Änderungen verändern das Board. ['leaderboard']
-            // trifft per Prefix auch ['leaderboard', slug].
-            qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
+        onSuccess: (game) => {
+            qc.invalidateQueries({ queryKey: queryKeys.games(game.tournamentId) });
+            // pinned/Metrik-Änderungen verändern das Board.
+            qc.invalidateQueries({
+                queryKey: queryKeys.leaderboards(game.tournamentId),
+            });
         },
     });
 };
 
-export const useDeleteGame = () => {
+/** Wie `useDeleteTeam`: `DELETE` antwortet 204, die `tournamentId` kommt
+ *  deshalb vom Aufrufer statt aus der Antwort. */
+export const useDeleteGame = (tournamentId: string) => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => api.deleteGame(id),
         onSuccess: () => {
-            qc.invalidateQueries({ queryKey: queryKeys.games });
-            qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
+            qc.invalidateQueries({ queryKey: queryKeys.games(tournamentId) });
+            qc.invalidateQueries({
+                queryKey: queryKeys.leaderboards(tournamentId),
+            });
         },
     });
 };
@@ -141,10 +204,10 @@ export const useUpdatePlayer = () => {
         onSuccess: (player) => {
             qc.invalidateQueries({ queryKey: queryKeys.players });
             qc.invalidateQueries({
-                queryKey: queryKeys.playerStats(player.id),
+                queryKey: queryKeys.playerStatsAll(player.id),
             });
-            // Der Name steht auch in jeder Rangliste.
-            qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
+            // Der Name steht auch in jeder Rangliste, in jedem Turnier.
+            qc.invalidateQueries({ queryKey: queryKeys.leaderboardsAll });
         },
     });
 };
@@ -155,7 +218,7 @@ export const useDeletePlayer = () => {
         mutationFn: (id: string) => api.deletePlayer(id),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: queryKeys.players });
-            qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
+            qc.invalidateQueries({ queryKey: queryKeys.leaderboardsAll });
         },
     });
 };
@@ -165,12 +228,17 @@ export const useSubmitScore = () => {
     return useMutation({
         mutationFn: (input: SubmitScoreInput) => api.submitScore(input),
         onSuccess: (_score, input) => {
-            qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
+            qc.invalidateQueries({
+                queryKey: queryKeys.leaderboards(input.tournamentId),
+            });
             // Team-Scores haben keine playerId — dann gibt es auch keine
             // Spielerstatistik, die veralten könnte.
             if (input.playerId) {
                 qc.invalidateQueries({
-                    queryKey: queryKeys.playerStats(input.playerId),
+                    queryKey: queryKeys.playerStats(
+                        input.playerId,
+                        input.tournamentId,
+                    ),
                 });
             }
         },
@@ -243,7 +311,9 @@ export const useDeleteScore = (tournamentId: string) => {
         mutationFn: (id: string) => api.deleteScore(id),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: queryKeys.scores(tournamentId) });
-            qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
+            qc.invalidateQueries({
+                queryKey: queryKeys.leaderboards(tournamentId),
+            });
         },
     });
 };

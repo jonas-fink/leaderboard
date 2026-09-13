@@ -13,16 +13,25 @@ import { config } from '#config';
  *
  * Der Dateiname wird serverseitig neu vergeben — der hochgeladene ist
  * Nutzereingabe und hat auf der Platte nichts zu suchen.
+ *
+ * Liegt unter `uploads/<userId>/` (AD-9, specs/002-benutzerkonten): macht die
+ * Quote zu einem `readdir` ohne Zählerfeld und die Löschkaskade eines Kontos
+ * zu einem einzigen Verzeichnis statt einer Dateisuche. Das Verzeichnis wird
+ * bei Bedarf angelegt (E-11).
  */
-export const storeImage = async (buffer: Buffer): Promise<string> => {
+export const storeImage = async (
+    buffer: Buffer,
+    userId: string,
+): Promise<string> => {
     const normalized = await sharp(buffer)
         .resize(128, 128, { kernel: 'nearest', fit: 'cover' })
         .png()
         .toBuffer();
 
     const filename = `${randomUUID()}.png`;
-    await mkdir(config.uploadDir, { recursive: true });
-    await writeFile(join(config.uploadDir, filename), normalized);
+    const dir = join(config.uploadDir, userId);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, filename), normalized);
 
-    return `/uploads/${filename}`;
+    return `/uploads/${userId}/${filename}`;
 };

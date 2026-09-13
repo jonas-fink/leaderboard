@@ -72,6 +72,13 @@ export const createMatch = async (
     return toApi(doc);
 };
 
+/** Für die Besitzprüfung vor dem Löschen. */
+export const getMatch = async (id: string): Promise<MatchType> => {
+    const doc = await Match.findById(id);
+    if (!doc) throw notFound('Match');
+    return toApi(doc);
+};
+
 /** Gibt das gelöschte Match zurück — der Emitter braucht die tournamentId. */
 export const deleteMatch = async (id: string): Promise<MatchType> => {
     const doc = await Match.findByIdAndDelete(id);

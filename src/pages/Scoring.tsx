@@ -45,7 +45,9 @@ const ago = (iso: string): string => {
  */
 const Scoring = () => {
     const { tournament } = useTournamentContext();
-    const { data: games = [] } = useGames();
+    // Games gehören zu genau einem Turnier (specs/002, BE-8) — der Server
+    // liefert also schon nur die des aktuellen Turniers.
+    const { data: games = [] } = useGames(tournament?.id);
     const { data: players = [] } = usePlayers();
     const { data: teams = [] } = useTeams(tournament?.id);
     const { data: scores = [] } = useScores(tournament?.id);
@@ -58,9 +60,7 @@ const Scoring = () => {
     // Ableitungen laufen unbedingt vor dem frühen Rückgabewert — sonst
     // würden useMatches/useDeleteMatch je nach Turnierzustand mal aufgerufen
     // und mal nicht (react-hooks/rules-of-hooks).
-    const ownGames = tournament
-        ? games.filter((g) => g.tournamentId === tournament.id)
-        : [];
+    const ownGames = games;
     const game = ownGames.find((g) => g.id === gameId) ?? ownGames[0];
     const isVersus = game?.scoring === 'versus';
     const teamMode = tournament?.mode === 'team';

@@ -3,10 +3,19 @@ import { toJSONOptions } from '#db';
 
 const tournamentSchema = new Schema(
     {
+        // Besitz (specs/002-benutzerkonten): Turniere gehören einem Konto.
+        // Der zusammengesetzte Index unten macht den Slug je Konto eindeutig
+        // statt global (E-6) — zwei Konten dürfen denselben Turnier-Slug
+        // haben, die Board-URL trennt über den userSlug.
+        ownerId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+            index: true,
+        },
         slug: {
             type: String,
             required: true,
-            unique: true,
             match: /^[a-z0-9-]+$/,
         },
         title: { type: String, required: true, maxlength: 100 },
@@ -41,5 +50,8 @@ const tournamentSchema = new Schema(
     },
     { timestamps: true, toJSON: toJSONOptions },
 );
+
+// Ersetzt den früheren globalen `unique` auf `slug` (AC-3.4, E-6).
+tournamentSchema.index({ ownerId: 1, slug: 1 }, { unique: true });
 
 export const Tournament = model('Tournament', tournamentSchema);

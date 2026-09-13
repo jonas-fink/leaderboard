@@ -21,12 +21,13 @@ export const ScoringModeSchema = z.enum(['metric', 'versus']);
 
 /**
  * Bild-Adresse: entweder extern oder ein Upload auf demselben Server.
- * Uploads liegen unter `/uploads/<name>` und sind damit relativ — `z.url()`
- * allein würde genau die Adressen ablehnen, die der eigene Upload ausgibt.
+ * Uploads liegen unter `/uploads/<userId>/<name>` (AD-9,
+ * specs/002-benutzerkonten) und sind damit relativ — `z.url()` allein würde
+ * genau die Adressen ablehnen, die der eigene Upload ausgibt.
  */
 export const ImageUrlSchema = z.union([
     z.url(),
-    z.string().regex(/^\/uploads\/[\w.-]+$/),
+    z.string().regex(/^\/uploads\/[\w.-]+\/[\w.-]+$/),
 ]);
 
 // Konfiguration einzelner Metriken
@@ -106,7 +107,11 @@ const PlayerFields = z.object({
     countryCode: z.string().length(2).toUpperCase().optional(),
 });
 
-export const PlayerSchema = PlayerFields.extend({ id: z.string().min(1) });
+/** `ownerId` dito wie bei `TournamentSchema` — Antwort, nicht Create-Input. */
+export const PlayerSchema = PlayerFields.extend({
+    id: z.string().min(1),
+    ownerId: z.string().min(1),
+});
 
 /**
  * Score-Felder. `tournamentId` ist gegenüber dem Game denormalisiert, damit
@@ -387,6 +392,9 @@ export const BoardStateSchema = z.object({
     tournament: z.object({
         id: z.string().min(1),
         slug: z.string().regex(/^[a-z0-9-]+$/),
+        // Der Konto-Slug des Besitzers — damit der Client die öffentliche
+        // Board-URL `/board/:ownerSlug/:slug` bauen kann (AC-4.5).
+        ownerSlug: z.string().regex(/^[a-z0-9-]+$/),
         title: z.string().min(1),
         mode: TournamentModeSchema,
         status: TournamentStatusSchema,
@@ -429,16 +437,71 @@ export const AnnouncementSchema = z.object({
     rank: z.number().int().positive().optional(),
 });
 
-// --- Zugriffsschutz und Upload (PROJEKT.md §8, §9) -------------------------
+// --- Konten, Zugriffsschutz und Upload (PROJEKT.md §9, specs/002) ----------
 
-/** Kein User-Modell — eine geteilte Passphrase schaltet das Schreiben frei. */
-export const LoginSchema = z.object({ pin: z.string().min(1) });
-export const AuthTokenSchema = z.object({ token: z.string().min(1) });
+/**
+ * Slugs, die mit einem festen Routenpfad kollidieren würden (E-8) — bei der
+ * Registrierung abgelehnt, sonst wird `/board/:userSlug/:slug` mehrdeutig.
+ */
+export const RESERVED_SLUGS = [
+    'board',
+    'result',
+    'control',
+    'login',
+    'register',
+    'api',
+    'uploads',
+] as const;
+
+const isNotReservedSlug = (slug: string): boolean =>
+    !(RESERVED_SLUGS as readonly string[]).includes(slug);
+
+const AccountSlugSchema = z
+    .string()
+    .regex(
+        /^[a-z0-9-]+$/,
+        'Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten',
+    )
+    .min(2)
+    .max(30);
+
+/** Das öffentliche Bild eines Kontos — ohne `passwordHash`. */
+export const UserSchema = z.object({
+    id: z.string().min(1),
+    email: z.email(),
+    slug: AccountSlugSchema,
+    displayName: z.string().trim().max(50).optional(),
+});
+
+/**
+ * Registrierung. `trap` ist das Honeypot-Feld: per CSS ausgeblendet, ein
+ * echter Nutzer füllt es nie. Geprüft wird es im Controller (AC-1.5), nicht
+ * hier — ein leeres oder fehlendes Feld ist immer gültig.
+ */
+export const RegisterSchema = z
+    .object({
+        email: z.email(),
+        password: z.string().min(12, 'Passwort muss mindestens 12 Zeichen haben'),
+        slug: AccountSlugSchema,
+        displayName: z.string().trim().max(50).optional(),
+        trap: z.string().optional(),
+    })
+    .refine(
+        (input) => isNotReservedSlug(input.slug),
+        'Dieser Slug ist reserviert',
+    );
+
+export const LoginSchema = z.object({
+    email: z.email(),
+    password: z.string().min(1),
+});
+
 /** Antwort des Uploads; die Adresse wandert danach in ein Entitätsfeld. */
 export const UploadResultSchema = z.object({ url: ImageUrlSchema });
 
+export type User = z.infer<typeof UserSchema>;
+export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
-export type AuthToken = z.infer<typeof AuthTokenSchema>;
 export type UploadResult = z.infer<typeof UploadResultSchema>;
 
 // --- Socket-Events (PROJEKT.md §5, KONVENTIONEN.md §8) ---------------------
@@ -509,8 +572,14 @@ const TournamentFields = z.object({
     bannerUrl: ImageUrlSchema.optional(),
 });
 
+/**
+ * `ownerId` steht nur in der Antwort, nicht im Create-Input (siehe
+ * `CreateTournamentSchema`) — der Server nimmt es aus der Sitzung, ein
+ * Client könnte sonst fremden Besitz behaupten.
+ */
 export const TournamentSchema = TournamentFields.extend({
     id: z.string().min(1),
+    ownerId: z.string().min(1),
 });
 
 /**

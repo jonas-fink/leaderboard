@@ -3,4 +3,4 @@ import { boardController } from '#controllers';
 
 export const boardRouter = Router();
 
-boardRouter.get('/:slug', boardController.getBoard);
+boardRouter.get('/:userSlug/:tournamentSlug', boardController.getBoard);

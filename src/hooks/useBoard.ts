@@ -72,7 +72,11 @@ const subscribeToSocket = (onChange: () => void) => {
  * Socket-Zustand überschreiben und auf der Leinwand stünde sichtbar
  * Falsches.
  */
-export const useBoard = (slug: string, allGames = false) => {
+export const useBoard = (
+    userSlug: string,
+    tournamentSlug: string,
+    allGames = false,
+) => {
     const [live, setLive] = useState<BoardState | null>(null);
     const [toastState, setToastState] = useState<ToastState>(EMPTY);
     const connected = useSyncExternalStore(
@@ -81,8 +85,8 @@ export const useBoard = (slug: string, allGames = false) => {
     );
 
     const polled = useQuery({
-        queryKey: queryKeys.board(slug, allGames),
-        queryFn: () => api.fetchBoard(slug, allGames),
+        queryKey: queryKeys.board(userSlug, tournamentSlug, allGames),
+        queryFn: () => api.fetchBoard(userSlug, tournamentSlug, allGames),
         refetchInterval: POLL_MS,
     });
 

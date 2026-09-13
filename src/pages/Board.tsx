@@ -20,8 +20,8 @@ const SLOTS = 4;
  * Zielgeräts muss dafür nicht bekannt sein.
  */
 const Board = () => {
-    const { tournamentSlug = '' } = useParams();
-    const { board, toasts, connected, error } = useBoard(tournamentSlug);
+    const { userSlug = '', slug = '' } = useParams();
+    const { board, toasts, connected, error } = useBoard(userSlug, slug);
 
     // Eine Karte mit frischer Wertung bleibt stehen, solange ihr Toast steht.
     const held = toasts.some((toast) => toast.gameId);

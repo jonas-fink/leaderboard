@@ -1,3 +1,4 @@
+export * from './user.model.ts';
 export * from './tournament.model.ts';
 export * from './team.model.ts';
 export * from './game.model.ts';

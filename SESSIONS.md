@@ -21,6 +21,102 @@ die Begründungen zu einzelnen Schritten.
 
 ---
 
+## 2026-09-13 — Feature 002, Nacharbeit BE-8: `playerHistory` ohne Turnierbezug
+
+**Gebaut**
+
+- `score.service.playerHistory` bekommt `tournamentId` als Pflichtparameter
+  und filtert die Score-Abfrage jetzt über `{ playerId, tournamentId }` statt
+  nur `{ playerId }`. `leaderboard.service.getPlayerStats` reicht ihre eigene
+  `tournamentId` durch.
+
+**Entschieden**
+
+- Dies ist die Nachbesserung zu einem der acht in `architecture.md`
+  benannten Löcher (»getPlayerStats mit tournamentId«) — die ursprüngliche
+  BE-8-Umsetzung hatte `tournamentId` bis zu `listGames()` durchgereicht, aber
+  nicht bis zu `playerHistory()`. QA (`qa-report.md`, F-1) hat den daraus
+  entstehenden Leerlauf live nachvollzogen: ein fremder Account konnte einen
+  Score an eine `playerId` des eigenen Kontos hängen, und dieser Score
+  erschien anschließend in der Spieler-Historie des rechtmäßigen Kontos,
+  komplett mit Titel und Slug eines fremden Turniers. Die Turnierbindung
+  schließt genau diesen Pfad.
+
+**Offen**
+
+- F-1 hat noch eine zweite Ursache, die **nicht** Teil von BE-8 ist und hier
+  bewusst nicht angefasst wurde: `POST /api/scores` (und derselbe Musterfehler
+  in `postMatch`/`postTeam`) prüft nie, ob die referenzierte `playerId`/
+  `teamId` überhaupt dem aufrufenden Konto gehört. Das erlaubt weiterhin
+  verwaiste Fremdreferenzen innerhalb des eigenen Turniers — sie leaken nur
+  nicht mehr in die Spieler-Historie des fremden Kontos. War schon vor diesem
+  Schritt in diesem Log vermerkt; bleibt ein offener Punkt für eine eigene
+  Aufgabe.
+
+---
+
+## 2026-09-13 — Feature 002: Benutzerkonten und Mandantentrennung (Backend)
+
+**Gebaut**
+
+- `User`-Modell (`server/src/models/user.model.ts`), `scrypt`-Passwort-Hashing
+  und ein um `userId`/Ausstellungszeitpunkt erweitertes HMAC-Token, das jetzt
+  in einem `httpOnly`-Cookie reist (`services/session.service.ts`) statt in
+  einem Response-Body.
+- `requireUser` (`middleware/auth.ts`) ersetzt `requireAdmin`, lädt das Konto
+  je Request und hängt es an `req.user` — ohne Ausnahme für GET (AC-3.8).
+- `ownerId` an `Tournament` und `Player`; zusammengesetzte statt globaler
+  `unique`-Indizes. `assertOwned` (`tournament.service.ts`) ist die einzige
+  Stelle, an der Besitz geprüft wird, und wirft `404`, nie `403`.
+- Acht bestehende Lücken geschlossen, in denen ein `find` ohne Besitz- oder
+  Turnierbezug lief (u. a. `getGameBySlug`, `getPlayerMap`,
+  `GET /api/players`, `GET /api/games`, `GET /api/scores`).
+- `GET /api/board/:userSlug/:tournamentSlug` ersetzt
+  `GET /api/board/:slug` — zwei Konten dürfen jetzt denselben Turnier-Slug
+  vergeben.
+- `services/quota.service.ts` mit Obergrenzen je Konto beziehungsweise
+  Turnier (Turniere, Spieler, Teams, Disziplinen, Uploads); Uploads liegen
+  jetzt unter `uploads/<userId>/`.
+- `npm run user:delete -- <email> --yes` (Trockenlauf ohne `--yes`) löscht ein
+  Konto samt Turnieren, Teams, Disziplinen, Wertungen, Matches, Spielern und
+  seinem Upload-Verzeichnis.
+- `seed.ts` legt ein Demo-Konto an (`demo@future-space.kassel`) und hängt das
+  Beispielturnier samt Spielern daran.
+- `PROJEKT.md` §2, §3 und §9 nachgezogen; §9 ist vollständig neu, weil der
+  bisherige Absatz „kein Besitzer, keine Mandanten" ab jetzt schlicht falsch
+  ist.
+
+**Entschieden**
+
+- Kein JWT, kein Refresh-Token-Paar — das bestehende HMAC-Token trägt jetzt
+  ein Subjekt, der Widerruf steckt in zwei Zeilen `requireUser`
+  (`findById` + `sessionsValidFrom`) statt in einer Rotations-Collection.
+  Ausführlich als ADR in `specs/002-benutzerkonten/architecture.md`.
+- `getTournamentBySlug` und `boardBySlug` mussten mit BE-7/BE-10 in einem
+  Schritt umgebaut werden, nicht nacheinander: sobald der Slug nur noch je
+  Konto eindeutig ist, kompiliert der alte Ein-Parameter-Aufruf nicht mehr.
+- `npm run tournament:delete` bekam ein zusätzliches `<email>`-Argument
+  (`tournament:delete -- <email> <slug> --yes`), weil der Turnier-Slug seit
+  diesem Feature nicht mehr global eindeutig ist.
+
+**Offen**
+
+- `docs/scoreboard.architecture.json` und `docs/scoreboard-architektur.html`
+  sind gegenüber dem aktuellen Datenmodell und `PROJEKT.md` §12 gedriftet —
+  weder aus 001 noch aus 002 nachgezogen. `PROJEKT.md` §12 selbst beschreibt
+  noch den Stand vor 001 (kein `Match`, keine Konten, `requireAdminForWrites`
+  existiert im Code nicht mehr) und braucht einen eigenen Durchgang.
+- Frontend (`FE-1` bis `FE-4`) steht noch aus — `src/lib/auth.ts` und
+  `PinLock.tsx` sind serverseitig bereits funktionslos, aber noch nicht
+  gelöscht.
+- `playerId`-Besitz wird bei `POST /api/scores` nicht geprüft: ein Score kann
+  aktuell an eine `playerId` gehängt werden, ohne dass der Server nachsieht,
+  ob dieser Spieler demselben Konto gehört wie das Turnier. Keine AC verlangt
+  das explizit, aber es ist dieselbe Fehlerklasse wie die geschlossenen
+  Lücken.
+
+---
+
 ## 2026-09-10 — Rückweg von der Leinwand
 
 **Gebaut**

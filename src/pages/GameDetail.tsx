@@ -1,22 +1,22 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { LeaderChartCard, ScoreFormModal } from '../components';
-import { useLeaderboard, useTournaments } from '../hooks';
+import { useLeaderboard } from '../hooks';
+import { useTournamentContext } from '../hooks/useTournamentContext';
 
-/** Ein Board mit vollständiger Rangliste statt nur Top 5. */
+/**
+ * Ein Board mit vollständiger Rangliste statt nur Top 5.
+ *
+ * specs/002 (BE-8): `GET /api/leaderboard/:slug` verlangt jetzt `tournamentId`
+ * — zwei Turniere könnten sonst dieselbe Disziplin-Slug tragen (AC-3.6). Die
+ * Route trägt keine `tournamentId`, deshalb kommt sie aus dem aktuellen
+ * Turnier des Control-Panels, derselben Heuristik wie in `Scoring.tsx`.
+ */
 const GameDetail = () => {
     const { slug = '' } = useParams();
-    const { data, isLoading, error } = useLeaderboard(slug);
-    const { data: tournaments = [] } = useTournaments();
+    const { tournament } = useTournamentContext();
+    const { data, isLoading, error } = useLeaderboard(slug, tournament?.id);
     const [scoreOpen, setScoreOpen] = useState(false);
-
-    // Der Modus entscheidet, ob das Formular Spieler oder Teams anbietet
-    // (PROJEKT.md §3) — hier über die eigene Disziplin ermittelt statt über
-    // `useTournamentContext`, das nur das zuletzt gestartete Turnier kennt und
-    // damit am falschen Turnier vorbeizeigen könnte.
-    const tournament = data
-        ? tournaments.find((t) => t.id === data.game.tournamentId)
-        : undefined;
 
     return (
         <section className="p-4 md:p-0">
@@ -27,22 +27,31 @@ const GameDetail = () => {
                 ← Dashboard
             </Link>
 
-            {error && (
+            {!tournament && (
+                <p className="border-2 border-line bg-surface p-6 text-ink-mute">
+                    Es gibt noch kein Turnier. Lege im Reiter TURNIER eines
+                    an.
+                </p>
+            )}
+
+            {tournament && error && (
                 <p className=" border-2 border-orange bg-orange/10 px-4 py-3 text-sm text-orange">
                     {error.message}
                 </p>
             )}
 
-            {isLoading && <div className="h-96 animate-pulse bg-surface-2" />}
+            {tournament && isLoading && (
+                <div className="h-96 animate-pulse bg-surface-2" />
+            )}
 
-            {data && (
+            {tournament && data && (
                 <>
                     <LeaderChartCard
                         data={data}
                         limit={Infinity}
                         onSubmitScore={() => setScoreOpen(true)}
                     />
-                    {scoreOpen && tournament && (
+                    {scoreOpen && (
                         <ScoreFormModal
                             open
                             game={data.game}

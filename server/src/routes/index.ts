@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAdmin } from '#middleware';
+import { requireUser } from '#middleware';
 import { tournamentRouter } from './tournament.routes.ts';
 import { teamRouter } from './team.routes.ts';
 import { gameRouter } from './game.routes.ts';
@@ -21,10 +21,10 @@ apiRouter.use('/auth', authRouter);
 // den Funnel — er kann sich nicht anmelden und soll es auch nicht müssen.
 apiRouter.use('/board', boardRouter);
 
-// Ab hier ist alles zu, auch das Lesen (PROJEKT.md §9). Ein Besucher sieht
-// das Board und sonst nichts: kein Spielerverzeichnis, keine Rohdaten.
-// Bewusst einmal zentral statt je Route, damit keine neue Route offen bleibt.
-apiRouter.use(requireAdmin);
+// Ab hier ist alles zu, auch das Lesen (AC-3.8). Ein Besucher sieht das Board
+// und sonst nichts: kein Spielerverzeichnis, keine Rohdaten. Bewusst einmal
+// zentral statt je Route, damit keine neue Route offen bleiben kann.
+apiRouter.use(requireUser);
 apiRouter.use('/uploads', uploadRouter);
 apiRouter.use('/tournaments', tournamentRouter);
 apiRouter.use('/teams', teamRouter);

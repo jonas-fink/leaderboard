@@ -2,7 +2,7 @@ import { useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
 import { Field, FormError, Modal } from '../components';
 import { ghostButtonClass, inputClass, primaryButtonClass } from '../lib/form';
-import { useCreateTournament, useUpdateTournament } from '../hooks';
+import { useCreateTournament, useMe, useUpdateTournament } from '../hooks';
 import { useTournamentContext } from '../hooks/useTournamentContext';
 import type { TournamentStatus } from '../schemas';
 
@@ -34,6 +34,7 @@ const slugify = (title: string) =>
  */
 const Tournament = () => {
     const { tournament, tournaments } = useTournamentContext();
+    const { data: me } = useMe();
     const createTournament = useCreateTournament();
     const updateTournament = useUpdateTournament();
 
@@ -128,20 +129,22 @@ const Tournament = () => {
                             </div>
                         </dl>
 
-                        <div className="flex flex-wrap gap-3">
-                            <Link
-                                to={`/board/${tournament.slug}`}
-                                className={primaryButtonClass}
-                            >
-                                Board öffnen
-                            </Link>
-                            <Link
-                                to={`/result/${tournament.slug}`}
-                                className={ghostButtonClass}
-                            >
-                                Siegerehrung öffnen
-                            </Link>
-                        </div>
+                        {me && (
+                            <div className="flex flex-wrap gap-3">
+                                <Link
+                                    to={`/board/${me.slug}/${tournament.slug}`}
+                                    className={primaryButtonClass}
+                                >
+                                    Board öffnen
+                                </Link>
+                                <Link
+                                    to={`/result/${me.slug}/${tournament.slug}`}
+                                    className={ghostButtonClass}
+                                >
+                                    Siegerehrung öffnen
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </section>
             )}

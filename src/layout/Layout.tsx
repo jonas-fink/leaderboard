@@ -1,6 +1,7 @@
-import { NavLink, Outlet } from 'react-router';
-import PinLock from '../components/layout/PinLock';
+import { NavLink, Outlet, useNavigate } from 'react-router';
+import { IoLogOutOutline } from 'react-icons/io5';
 import { useTournamentContext } from '../hooks/useTournamentContext';
+import { useLogout, useMe } from '../hooks';
 
 const TABS = [
     { to: '/control', label: 'WERTUNG', end: true },
@@ -17,6 +18,14 @@ const TABS = [
  */
 const Layout = () => {
     const { tournament } = useTournamentContext();
+    const { data: me } = useMe();
+    const logout = useLogout();
+    const navigate = useNavigate();
+
+    const handleLogout = () =>
+        logout.mutate(undefined, {
+            onSuccess: () => navigate('/login', { replace: true }),
+        });
 
     return (
         <div className="flex min-h-screen flex-col bg-bg text-ink">
@@ -43,7 +52,23 @@ const Layout = () => {
                         </span>
                     )}
                 </div>
-                <PinLock />
+                <div className="flex items-center gap-3">
+                    {me && (
+                        <span className="text-sm text-ink-mute">
+                            {me.displayName || me.email}
+                        </span>
+                    )}
+                    <button
+                        type="button"
+                        title="Abmelden"
+                        aria-label="Abmelden"
+                        onClick={handleLogout}
+                        disabled={logout.isPending}
+                        className="cursor-pointer text-gold transition-colors hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <IoLogOutOutline size={32} />
+                    </button>
+                </div>
             </header>
 
             <nav className="flex h-[54px] shrink-0 items-stretch border-b-2 border-line bg-bg px-6">

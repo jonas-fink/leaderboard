@@ -19,12 +19,15 @@ const CARD_LIMIT = 5;
  */
 export const buildCharts = async (
     games: Game[],
+    /** Konto, dem die Spieler gehören — Player ist kontoweit, nicht
+     *  turnierweit (AD-8), deshalb kein `tournamentId` hier. */
+    ownerId: string,
     limit?: number,
 ): Promise<LeaderboardChartData[]> => {
     if (games.length === 0) return [];
 
     const [playerMap, buckets] = await Promise.all([
-        getPlayerMap(),
+        getPlayerMap(ownerId),
         scoresByGame(games.map((game) => game.id)),
     ]);
 
@@ -43,38 +46,47 @@ export const buildCharts = async (
     });
 };
 
-/** Die auf dem Dashboard angepinnten Games, je Karte gekürzt. */
-export const getPinnedCharts = async (): Promise<LeaderboardChartData[]> => {
-    const games = (await listGames()).filter((game) => game.pinned);
-    return buildCharts(games, CARD_LIMIT);
+/** Die auf dem Dashboard angepinnten Games eines Turniers, je Karte gekürzt. */
+export const getPinnedCharts = async (
+    tournamentId: string,
+    ownerId: string,
+): Promise<LeaderboardChartData[]> => {
+    const games = (await listGames(tournamentId)).filter(
+        (game) => game.pinned,
+    );
+    return buildCharts(games, ownerId, CARD_LIMIT);
 };
 
 /** Ein einzelnes Board mit vollständiger Rangliste. */
 export const getChartBySlug = async (
     slug: string,
+    tournamentId: string,
+    ownerId: string,
 ): Promise<LeaderboardChartData> => {
-    const game = await getGameBySlug(slug);
-    const [chart] = await buildCharts([game]);
+    const game = await getGameBySlug(slug, tournamentId);
+    const [chart] = await buildCharts([game], ownerId);
     return chart!;
 };
 
 /**
- * Medaillenspiegel + Historie eines Spielers.
+ * Medaillenspiegel + Historie eines Spielers innerhalb eines Turniers.
  * Die Medaillen werden aus den aktuellen Rängen berechnet, nicht gespeichert —
  * so kann kein Zähler veralten, wenn Scores korrigiert werden.
  */
 
 export const getPlayerStats = async (
     playerId: string,
+    tournamentId: string,
+    ownerId: string,
 ): Promise<PlayerStats> => {
     const [player, games, recentScores, totalScores] = await Promise.all([
-        getPlayer(playerId),
-        listGames(),
-        playerHistory(playerId),
-        countScores({ playerId }),
+        getPlayer(playerId, ownerId),
+        listGames(tournamentId),
+        playerHistory(playerId, tournamentId),
+        countScores({ playerId, tournamentId }),
     ]);
 
-    const charts = await buildCharts(games);
+    const charts = await buildCharts(games, ownerId);
 
     const medals = { gold: 0, silver: 0, bronze: 0 };
     let gamesPlayed = 0;

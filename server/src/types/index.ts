@@ -4,6 +4,17 @@ import type {
     StandingsEntry,
     TournamentMode,
 } from '#schemas';
+import type { UserDocument } from '#models';
+
+// Deklarations-Merge: `requireUser` (middleware/auth.ts) hängt das geladene
+// Konto an den Request, jeder Controller danach kennt `req.user`.
+declare global {
+    namespace Express {
+        interface Request {
+            user: UserDocument;
+        }
+    }
+}
 
 export type {
     Game,
@@ -45,8 +56,9 @@ export type {
     TournamentStatusEvent,
     ServerToClientEvents,
     ClientToServerEvents,
+    User,
+    RegisterInput,
     LoginInput,
-    AuthToken,
     UploadResult,
 } from '#schemas';
 

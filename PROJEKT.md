@@ -23,11 +23,12 @@ das Board sichtbar. Zwischen beidem darf kein manueller Refresh liegen.
 
 ## 2. Ansichten
 
-| Route                     | Gerät                  | Inhalt                                                             |
-| ------------------------- | ---------------------- | ------------------------------------------------------------------ |
-| `/board/:tournamentSlug`  | Leinwand / Beamer      | Gesamtwertung + rotierende Game-Karten, keine Bedienelemente       |
-| `/control`                | Tablet / Laptop        | Turniere, Teams, Spieler, Games anlegen; Scores eintragen          |
-| `/result/:tournamentSlug` | Leinwand / Nachbericht | Siegerehrung: Gesamtwertung, Punkte je Disziplin, Medaillenspiegel |
+| Route                              | Gerät                  | Inhalt                                                             |
+| ----------------------------------- | ---------------------- | ------------------------------------------------------------------ |
+| `/login`, `/register`               | beliebig               | Konto anlegen bzw. anmelden (§9)                                   |
+| `/board/:userSlug/:tournamentSlug`  | Leinwand / Beamer      | Gesamtwertung + rotierende Game-Karten, keine Bedienelemente       |
+| `/control`                          | Tablet / Laptop        | Turniere, Teams, Spieler, Games anlegen; Scores eintragen          |
+| `/result/:userSlug/:tournamentSlug` | Leinwand / Nachbericht | Siegerehrung: Gesamtwertung, Punkte je Disziplin, Medaillenspiegel |
 
 `/board` ist bewusst zustandslos und ohne Eingaben: der Rechner an der Leinwand
 soll die Seite öffnen und für den Rest des Abends nicht angefasst werden.
@@ -37,20 +38,41 @@ Turniernamen ist auf `/board` und `/result` ein Link ins Control-Panel. Sie
 sieht unverändert aus und bekommt erst beim Überfahren einen Pfeil — auf der
 Leinwand steht dadurch kein Zeichen mehr als vorher.
 
+`/control` ist hinter einer Sitzung verborgen (§9): ohne Konto landet man auf
+`/login`. `/board` und `/result` bleiben öffentlich, tragen aber jetzt den
+Konto-Slug (`userSlug`) in der URL — zwei Konten dürfen denselben
+Turnier-Slug vergeben, der `userSlug` trennt ihre Board-Adressen.
+
 ---
 
 ## 3. Datenmodell
 
-Vier neue beziehungsweise geänderte Collections. `Player` bleibt weitgehend wie
-bisher, `Game` und `Score` werden umgebaut, `Tournament` und `Team` kommen dazu.
+Fünf neue beziehungsweise geänderte Collections. `Player` gehört jetzt einem
+Konto, `Game` und `Score` sind umgebaut, `Tournament`, `Team` und `User`
+kommen dazu.
+
+### User
+
+Ein Konto — Veranstalter registrieren sich selbst (§9), es gibt genau eine
+Sorte Konto, keine Rollen.
+
+```
+email               string, unique, kleingeschrieben gespeichert
+slug                string, unique, /^[a-z0-9-]+$/  // trägt die Board-URL: /board/<slug>/<turnier>
+displayName         string?
+passwordHash        string             // scrypt, nie in einer Antwort
+sessionsValidFrom   Date               // "überall abmelden"; jedes ältere Token gilt nicht mehr
+verifiedAt          Date?              // reserviert, ungenutzt — keine Mail-Verifikation (noch)
+```
 
 ### Tournament
 
 Klammer um alles. Ein Turnier definiert, **gegen wen** gespielt wird und **wie**
-gewertet wird.
+gewertet wird. Gehört einem Konto.
 
 ```
-slug          string, unique, /^[a-z0-9-]+$/
+ownerId       ObjectId → User, required
+slug          string, unique je ownerId, /^[a-z0-9-]+$/
 title         string
 description   string?
 mode          'player' | 'team'        // gilt für ALLE Games des Turniers
@@ -65,6 +87,9 @@ bannerUrl     string?
 `mode` ist die zentrale Entscheidung: entweder treten Spieler gegen Spieler an
 oder Teams gegen Teams. Gemischte Turniere gibt es bewusst nicht — das erspart
 die Frage, wie eine Einzelleistung in eine Teamwertung überführt wird.
+
+Zwei Konten dürfen denselben `slug` vergeben (E-6) — die öffentliche Board-URL
+trennt sie über den Konto-Slug: `/board/:userSlug/:tournamentSlug`.
 
 ### Team
 
@@ -88,15 +113,19 @@ turnierbezogen.
 
 ### Player
 
-Global und turnierübergreifend, damit persönliche Historie erhalten bleibt.
+Gehört einem Konto, nicht einem Turnier — turnierübergreifend, damit
+persönliche Historie über mehrere Events desselben Kontos erhalten bleibt.
 
 ```
-username      string, unique
+ownerId       ObjectId → User, required
+username      string, unique je ownerId
 displayName   string?
 avatarUrl     string?            // Upload
 avatarSeed    string             // deterministischer Fallback aus dem Namen
 countryCode   string?            // bleibt, wird auf dem Board nicht genutzt
 ```
+
+Zwei Konten dürfen denselben `username` vergeben (E-7).
 
 ### Game
 
@@ -316,46 +345,66 @@ vergeben.
 
 ---
 
-## 9. Zugriffsschutz
+## 9. Zugriffsschutz und Mandantentrennung
 
-Kein User-Modell. Eine geteilte Passphrase aus `ADMIN_PIN` schaltet die Eingabe
-frei; der Server gibt dafür ein HMAC-signiertes Token mit 12 Stunden Laufzeit
-aus, das im `localStorage` liegt.
+Ein `User`-Modell (§3), `scrypt`-Passwort-Hashing und ein signiertes
+Sitzungs-Token, das in einem `httpOnly`-Cookie reist — kein `ADMIN_PIN`, kein
+Token im `localStorage` mehr. Die Registrierung ist offen: ein Veranstalter
+legt sich sein Konto selbst an, ohne Zutun des Betreibers.
+
+**Jedes Konto sieht ausschließlich seine eigenen Daten.** `Tournament` und
+`Player` tragen ein `ownerId`; `Team`, `Game`, `Score` und `Match` erben den
+Besitz über ihr Turnier. Ein Zugriff auf ein fremdes Objekt — lesend wie
+schreibend — endet mit `404`, nie `403`: eine `403` würde bestätigen, dass die
+ID überhaupt existiert.
 
 **Die gesamte Anwendung läuft über den Tailscale Funnel**, auch das
-Control-Panel. Die ursprünglich vorgesehene Netzwerkgrenze (`/control` nur im
-Tailnet) ist damit aufgegeben: die Eingabe soll von Geräten der Einrichtung aus
-bedienbar sein, ohne diese dauerhaft ins Tailnet aufzunehmen. Der PIN ist
-dadurch der einzige Zugriffsschutz und muss ein Zufallswert sein, kein
-gewählter.
+Control-Panel. Die Sitzung ist dadurch der einzige Zugriffsschutz; das Cookie
+ist für JavaScript unlesbar (`httpOnly`) und wird bei fremdinitiierten
+Requests nicht mitgeschickt (`SameSite=Lax`), ein CSRF-Token ist deshalb
+verzichtbar.
 
 Daraus folgt die Grenze in `routes/index.ts`:
 
-| Ohne Token                  | Mit Token                                    |
-| --------------------------- | -------------------------------------------- |
-| `GET /api/board/:slug`      | alles andere, **auch lesend**                |
-| `POST /api/auth`, `/health` | `/players`, `/scores`, `/teams`, `/games`, … |
-| `/uploads/*`, Socket-Räume  | `/leaderboard`, `/tournaments`, `/uploads`   |
+| Ohne Sitzung                                          | Mit Sitzung                                    |
+| ------------------------------------------------------ | ----------------------------------------------- |
+| `GET /api/board/:userSlug/:tournamentSlug`, `/health`   | alles andere, **auch lesend**                  |
+| `POST /api/auth/register`, `/login`, `/logout`          | `/players`, `/scores`, `/teams`, `/games`, …   |
+| `/uploads/*`, Socket-Räume                              | `/leaderboard`, `/tournaments`, `/uploads`     |
 
-Ein Besucher sieht das Board und sonst nichts — kein Spielerverzeichnis, keine
-Rohdaten. `requireAdmin` hängt einmal zentral, damit keine neue Route offen
-bleiben kann.
+Ein Besucher ohne Sitzung sieht das Board eines bekannten Kontos und sonst
+nichts — kein Spielerverzeichnis, keine Rohdaten fremder Konten.
+`requireUser` hängt einmal zentral in `routes/index.ts`, damit keine neue
+Route offen bleiben kann; `GET /api/auth/me` ist die einzige Ausnahme
+innerhalb des `/auth`-Routers, weil sie selbst eine Sitzung voraussetzt.
 
-`POST /api/auth` zählt Fehlversuche je Absender (20) und über alle zusammen
-(200) in einem 10-Minuten-Fenster und antwortet danach mit `429`. Bewusst
-großzügig: gegen einen zufälligen PIN hilft engeres Zählen nicht, aber eine
-Sperre weist auch den richtigen PIN ab. Ein bereits angemeldetes Gerät bleibt
-davon unberührt, weil die Bremse nur an der Anmeldung hängt.
+`POST /api/auth/login` zählt Fehlversuche je Absender (20) und über alle
+zusammen (200) in einem 10-Minuten-Fenster und antwortet danach mit `429`;
+`POST /api/auth/register` führt eine zweite, unabhängige Zählung, damit ein
+Registrierungs-Bot nicht die Anmeldung eines echten Veranstalters mitten im
+Event sperrt. Ein bereits angemeldetes Gerät bleibt von beidem unberührt.
 
-**Turniere lassen sich über die API nicht löschen.** Die Kaskade räumt Teams,
-Games und Scores mit ab; das ist über einen öffentlich erreichbaren Endpunkt
-kein vertretbares Risiko. Der Service dafür existiert und wird von Hand aus
-einem Skript auf dem Server aufgerufen.
+**Turniere lassen sich über die API löschen** (`DELETE /api/tournaments/:id`,
+`204`) — das war vor diesem Umbau gesperrt, weil ein durchprobierter,
+geteilter PIN das ganze Event hätte löschen können. Mit einer Sitzung pro
+Konto und der Besitzprüfung vor jedem Zugriff ist das Risiko auf das eigene
+Konto begrenzt. Die Kaskade räumt Teams, Games, Scores und Matches mit ab.
+`npm run tournament:delete` und `npm run user:delete` bleiben zusätzlich als
+Werkzeug auf dem Server, für den Fall eines missbräuchlichen Kontos.
 
-**Was der Entwurf ausdrücklich nicht leistet:** Es gibt keinen Besitzer eines
-Turniers und keine Mandanten. Wer den PIN hat, darf alles — auch die Turniere
-anderer. Eine Instanz gehört einem Veranstalter. Alles darüber hinaus wäre ein
-Datenmodell-Umbau (siehe §14).
+**Schadensgrenze je Konto.** Weil die Registrierung im offenen Netz steht,
+begrenzt eine Quote je Konto beziehungsweise Turnier die Ressourcen (Turniere,
+Spieler, Teams, Disziplinen, Uploads) unabhängig davon, wie viele Konten
+entstehen — Einzelheiten in `specs/002-benutzerkonten/architecture.md`
+(`services/quota.service.ts`).
+
+**Was der Entwurf ausdrücklich nicht leistet:** Es gibt genau eine Sorte
+Konto, keine Rollen, keine Co-Veranstalter und kein Teilen eines Turniers
+zwischen Konten. Mail-Verifikation und ein Mail-basiertes
+Passwort-Zurücksetzen fehlen bewusst (`verifiedAt` liegt dafür bereit) —
+Einzelheiten und die verworfenen Alternativen (JWT, Refresh-Token-Paar,
+Einladungscode, Superuser-Rolle) stehen als ADR in
+`specs/002-benutzerkonten/architecture.md`.
 
 ---
 
@@ -493,5 +542,6 @@ Cache-Schicht.
 
 - Automatische Score-Erfassung aus den Spielen selbst
 - Mehrsprachigkeit (Oberfläche ist deutsch)
-- Rollen- und Rechteverwaltung über den Admin-PIN hinaus
+- Rollen- und Rechteverwaltung über die eine Kontosorte hinaus (§9) — kein
+  Superuser, keine Co-Veranstalter, kein Teilen eines Turniers
 - Öffentliche Anmeldung von Teams durch die Teilnehmer selbst

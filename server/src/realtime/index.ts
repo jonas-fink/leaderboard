@@ -46,6 +46,12 @@ export const initRealtime = (httpServer: HttpServer): void => {
     io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer);
 
     io.on('connection', (socket) => {
+        // ponytail: `room:join` bleibt ohne Sitzung erreichbar (AD-5 in
+        // specs/002-benutzerkonten/architecture.md). Der Raum verteilt
+        // ausschließlich `board:update` — denselben Payload, den
+        // `GET /api/board/:userSlug/:tournamentSlug` ohnehin öffentlich
+        // ausliefert. Eine Prüfung hier würde nichts schützen, aber das
+        // Board am Beamer anmeldepflichtig machen (verbietet AC-4.4).
         socket.on('room:join', (payload) => {
             // Auch eine Socket-Nachricht geht durch den Vertrag (§8).
             const parsed = RoomJoinSchema.safeParse(payload);

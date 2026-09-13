@@ -4,9 +4,9 @@
 |---|---|---|---|
 | requirements | approved | 2026-09-13 | Aus dem Interview geschrieben, nicht über `/requirements` |
 | architecture | approved | 2026-09-13 | AD-1 bis AD-9 ohne Änderung bestätigt |
-| frontend | pending | — | — |
-| backend | pending | — | — |
-| qa | pending | — | — |
+| frontend | approved | 2026-09-13 | FE-1 bis FE-4, `tsc -b`/`build` sauber |
+| backend | approved | 2026-09-13 | BE-1 bis BE-13 plus BE-14 (F-1), 85/85 Tests |
+| qa | approved | 2026-09-13 | Runde 2 ohne Blocker und Majors, drei Minors |
 
 ## Abhängigkeit
 

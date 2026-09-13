@@ -1,12 +1,14 @@
 import type { RequestHandler } from 'express';
 import { httpError } from '#utils';
 import { storeImage } from '#services/upload.service';
+import { assertQuota } from '#services/quota.service';
 import type { UploadResult } from '#types';
 
 /** Nimmt ein Bild entgegen und gibt die Adresse zurück, die ins Feld wandert. */
 export const postUpload: RequestHandler = async (req, res) => {
     if (!req.file) throw httpError(400, 'Keine Datei im Feld "file"');
+    await assertQuota('uploadsPerUser', req.user.id);
     res.status(201).json({
-        url: await storeImage(req.file.buffer),
+        url: await storeImage(req.file.buffer, req.user.id),
     } satisfies UploadResult);
 };

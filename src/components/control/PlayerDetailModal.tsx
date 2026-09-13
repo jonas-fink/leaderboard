@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../Modal';
 import { ghostButtonClass, primaryButtonClass } from '../../lib/form';
 import { usePlayerStats, useDeletePlayer } from '../../hooks';
+import { useTournamentContext } from '../../hooks/useTournamentContext';
 import { formatMetricValue } from '../../utils';
 import type { Player } from '../../schemas';
 
@@ -28,7 +29,13 @@ export const PlayerDetailModal = ({
     onClose,
     onEdit,
 }: PlayerDetailModalProps) => {
-    const { data: stats, isLoading } = usePlayerStats(player?.id ?? null);
+    const { tournament } = useTournamentContext();
+    // Stats sind je Turnier (specs/002, BE-8) — ohne `tournamentId` bleibt
+    // der Hook untätig, genau wie bei `useGames`.
+    const { data: stats, isLoading } = usePlayerStats(
+        player?.id ?? null,
+        tournament?.id,
+    );
     const deletePlayer = useDeletePlayer();
     // Zweistufig statt confirm() — Löschen nimmt auch alle Scores mit.
     const [confirmDelete, setConfirmDelete] = useState(false);

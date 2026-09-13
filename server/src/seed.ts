@@ -1,16 +1,23 @@
 import { config } from '#config';
 import { connectDb, disconnectDb } from '#db';
-import { Tournament, Team, Game, Player, Score, Match } from '#models';
+import { Tournament, Team, Game, Player, Score, Match, User } from '#models';
+import { hashPassword } from '#services/auth.service';
 
 /**
- * Legt ein Beispielturnier an. Die Datenbank enthält ausschließlich Testdaten,
- * deshalb gibt es keine Migration — alle fünf Collections werden geleert und
- * neu befüllt (PROJEKT.md §12).
+ * Legt ein Demo-Konto mit einem Beispielturnier an. Die Datenbank enthält
+ * ausschließlich Testdaten, deshalb gibt es keine Migration — alle sechs
+ * Collections werden geleert und neu befüllt (PROJEKT.md §12).
  *
  * Das Beispiel läuft im `player`-Modus, weil die Score-Eingabe derzeit nur
  * Spieler kennt. Ein Team-Beispiel folgt, sobald /control Teamwertungen
  * eintragen kann.
  */
+
+/** Zugangsdaten des Demo-Kontos — nur für die lokale Entwicklung, nicht für
+ *  eine echte Registrierung gedacht. */
+const DEMO_EMAIL = 'demo@future-space.kassel';
+const DEMO_PASSWORD = 'future-space-demo-pw';
+const DEMO_SLUG = 'future-space';
 
 /**
  * Der Riegel ist kein Zeremoniell: MONGODB_URI zeigt möglicherweise auf einen
@@ -32,6 +39,7 @@ const startsAt = new Date('2026-10-02T18:00:00.000Z');
 
 const wipe = () =>
     Promise.all([
+        User.deleteMany({}),
         Tournament.deleteMany({}),
         Team.deleteMany({}),
         Game.deleteMany({}),
@@ -45,7 +53,16 @@ const seed = async () => {
     console.log(`Seed läuft gegen "${config.dbName}" auf ${target}.`);
     await wipe();
 
+    const owner = await User.create({
+        email: DEMO_EMAIL,
+        slug: DEMO_SLUG,
+        displayName: 'Future Space Kassel',
+        passwordHash: hashPassword(DEMO_PASSWORD),
+    });
+    const ownerId = owner._id;
+
     const tournament = await Tournament.create({
+        ownerId,
         slug: 'future-space-night',
         title: 'Future Space Gaming Night',
         description: 'Beispielturnier zum Entwickeln.',
@@ -57,7 +74,7 @@ const seed = async () => {
 
     const players = await Player.insertMany(
         ['nova', 'byte', 'pixel', 'glitch', 'echo', 'vector'].map(
-            (username) => ({ username, avatarSeed: username }),
+            (username) => ({ ownerId, username, avatarSeed: username }),
         ),
     );
     const id = (username: string) =>
@@ -166,8 +183,9 @@ const seed = async () => {
     );
 
     console.log(
-        `Fertig: 1 Turnier, ${players.length} Spieler, ${games.length} Games, ` +
-            `${results.length} Scores, ${matches.length} Matches.`,
+        `Fertig: 1 Konto, 1 Turnier, ${players.length} Spieler, ${games.length} Games, ` +
+            `${results.length} Scores, ${matches.length} Matches.\n` +
+            `Demo-Login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`,
     );
     await disconnectDb();
 };
