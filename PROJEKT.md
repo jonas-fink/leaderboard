@@ -27,7 +27,7 @@ das Board sichtbar. Zwischen beidem darf kein manueller Refresh liegen.
 | ----------------------------------- | ---------------------- | ------------------------------------------------------------------ |
 | `/login`, `/register`               | beliebig               | Konto anlegen bzw. anmelden (§9)                                   |
 | `/board/:userSlug/:tournamentSlug`  | Leinwand / Beamer      | Gesamtwertung + rotierende Game-Karten, keine Bedienelemente       |
-| `/control`                          | Tablet / Laptop        | Turniere, Teams, Spieler, Games anlegen; Scores eintragen          |
+| `/control`                          | Tablet / Laptop        | Anlegen und pflegen, Disziplinen starten, Scores eintragen         |
 | `/result/:userSlug/:tournamentSlug` | Leinwand / Nachbericht | Siegerehrung: Gesamtwertung, Punkte je Disziplin, Medaillenspiegel |
 
 `/board` ist bewusst zustandslos und ohne Eingaben: der Rechner an der Leinwand
@@ -143,11 +143,24 @@ weight          number, default 1     // Gewichtungsfaktor, Finale zählt z.B. 2
 pinned          boolean               // erscheint auf dem Board
 boardOrder      number                // Reihenfolge in der Rotation
 status          'upcoming' | 'running' | 'finished'
+endsAt          Date?                 // Ziel des Countdowns, solange 'running'
 ```
 
 Geändert gegenüber dem Ist-Stand: `timeframe` entfällt ersatzlos — der Zeitraum
 ist jetzt durchs Turnier definiert. Neu sind `tournamentId`, `weight`,
 `boardOrder` und `status`. `pinned` behält seine Bedeutung.
+
+`status` wird von Hand geschaltet, im Control-Panel auf der Game-Karte. Eine
+Ableitung aus dem Zustand (»ein Ergebnis liegt vor, also läuft es«) wäre
+weniger Bedienung, käme für den Countdown aber zu spät: der soll ab dem
+Startschuss laufen, nicht ab der ersten Wertung.
+
+`endsAt` ist der Zielzeitpunkt dieses Countdowns, gesetzt beim Umschalten auf
+`running` als *jetzt + Dauer*. Gespeichert wird das Ende, nicht die Dauer —
+so braucht die Leinwand keine Sekunde vom Server, sie rechnet gegen einen
+festen Zeitpunkt. Das Feld ist **nullable**, nicht nur optional: das
+Zurückschalten auf `upcoming` oder `finished` schickt ausdrücklich `null` und
+räumt den Countdown damit ab.
 
 ### Score
 
@@ -298,13 +311,30 @@ bleiben.
 - Rechts: **Game-Karten** im 2×2-Raster mit den Top-Plätzen je Disziplin.
 - Unten: Laufband oder Statuszeile mit Turniername und Fortschritt.
 
-**Rotation:** sind mehr Games gepinnt als Kartenplätze vorhanden, rotieren die
-Karten alle 20 Sekunden weiter. Ein Game, das gerade einen neuen Score bekommen
+**Rotation:** passen nicht alle Einträge gleichzeitig hin, wird geblättert —
+alle 20 Sekunden, für die Game-Karten wie für die Gesamtwertung, beides über
+denselben Hook (`useRotation`). Ein Game, das gerade einen neuen Score bekommen
 hat, bleibt für einen Zyklus stehen.
 
-**Animation:** Motion (`framer-motion`), `layout` plus `AnimatePresence` auf der
-Liste. Easing bewusst gestuft statt weich, damit die Bewegung zum Pixel-Look
-passt. Die Balkenlänge animiert synchron zur Positionsänderung mit.
+Die Gesamtwertung zeigt fünf Zeilen je Seite. Mehr passen in das Panel nicht,
+ohne dass Name und Punktzahl auf zehn Meter unleserlich werden; ab dem sechsten
+Teilnehmer wandert also der Ausschnitt, während die Reihenfolge steht. Passt
+alles auf eine Seite, teilen sich die Zeilen die Höhe des Panels wie bisher —
+erst beim Blättern wird die Zeilenhöhe fest, sonst wäre eine halbvolle letzte
+Seite sichtbar anders hoch als die erste.
+
+**Countdown:** eine Disziplin mit `status: 'running'` und gesetztem `endsAt`
+trägt ihre Restzeit im Statusfeld der Karte (`LÄUFT · 12:34`). Der Takt läuft
+lokal gegen `endsAt`, nicht gegen einen Serverwert — der Zielzeitpunkt steht
+fest, also braucht die Sekunde keinen Roundtrip. Bei 0 steht `ZEIT UM`; der
+Status bleibt, bis ihn jemand im Control-Panel umschaltet. Absicht: eine Runde,
+die eine halbe Minute überzieht, soll nicht hinter dem Rücken des
+Veranstalters als beendet gelten.
+
+**Animation:** Motion (Paket `motion`, Import aus `motion/react`), `layout`
+plus `AnimatePresence` auf der Liste. Easing bewusst gestuft statt weich, damit
+die Bewegung zum Pixel-Look passt. Die Balkenlänge animiert synchron zur
+Positionsänderung mit.
 
 Reduzierte Bewegung (`prefers-reduced-motion`) wird respektiert: dann Crossfade
 statt Verschieben.
@@ -423,6 +453,14 @@ Vor der Umsetzung entsteht ein **Design-Canvas** mit Artboards für Board-Screen
 Control-Panel, Team-Karte, Toast-Varianten und Palette. Erst nach Freigabe wird
 in Tokens übersetzt.
 
+**Favicon:** `public/favicon.svg` — das C aus CONTROL im selben Pixel-Schnitt
+wie die Sprites aus §8, oberer Arm und Rücken in Magenta, unterer Arm in Cyan,
+auf dem Board-Grund. Gezeichnet und nicht über `pixelSprite('control')`
+erzeugt: der Hash liefert ein spiegelsymmetrisches Muster, das auf Tab-Größe
+wie Rauschen aussieht und nichts über die App sagt. Das Raster ist 8×8 statt
+5×5, damit der Strich zwei Zellen breit sein kann — bei einer Zelle sind das
+im 16-Pixel-Tab drei Pixel, und die verschwimmen.
+
 ---
 
 ## 11. Deployment
@@ -450,9 +488,11 @@ dann hilft nur `tailscale serve reset` und beide Regeln neu setzen.
 Funnel muss einmalig in der Tailnet-Policy freigeschaltet werden
 (`nodeAttrs` mit `funnel`); öffentlich verfügbar sind nur 443, 8443 und 10000.
 
-API- und Socket-URL kommen aus Env-Variablen, damit derselbe Build ohne Änderung
-auch rein lokal im Venue-Netz läuft, falls die Leitung am Eventabend nicht
-mitspielt.
+API- und Socket-URL sind **nicht** konfigurierbar und müssen es nicht sein:
+der Client spricht immer seinen eigenen Origin an. Lokal leitet der Vite-Proxy
+`/api` und `/socket.io` weiter, im Betrieb liefert derselbe Express das gebaute
+Frontend aus. Derselbe Build läuft damit auch rein lokal im Venue-Netz, falls
+die Leitung am Eventabend nicht mitspielt.
 
 ---
 
@@ -478,6 +518,7 @@ gehosteten Cluster.
 | Realtime        | `realtime/index.ts` — Räume, `emitBoardUpdate`, `emitTournamentStatus`, verdrahtet in den Controllern |
 | Zugriffsschutz  | `services/auth.service.ts`, `middleware/auth.ts`, `POST /api/auth` — HMAC-Token, Anmeldebremse, §9    |
 | Upload          | `middleware/upload.ts` + `services/upload.service.ts` — 2 MB, PNG/JPEG/WebP → 128×128 PNG             |
+| Disziplin-Lauf  | Statuswechsel auf der Game-Karte in `/control`, Countdown über `endsAt` auf dem Board (§3, §6)        |
 
 `rank.ts` gruppiert über `entrantId` und wertet damit Spieler- wie
 Team-Turniere. `points.ts` verlässt sich auf eine monoton fallende
@@ -489,15 +530,26 @@ die gepinnten. Teilnehmer sind im Team-Modus die gemeldeten Teams (auch ohne
 Ergebnis), im Spieler-Modus alle mit mindestens einem Score — Spieler sind
 global und haben keine Turniermeldung.
 
-`requireAdminForWrites` hängt einmal zentral in `routes/index.ts` vor allen
-Routen außer `/auth`: GET, HEAD und OPTIONS gehen durch, alles andere braucht
-das Token. Bildfelder nehmen laut `ImageUrlSchema` eine externe URL **oder**
-einen Pfad unter `/uploads/` — genau das, was der eigene Upload ausgibt.
+`requireUser` hängt einmal zentral in `routes/index.ts` vor allen Routen außer
+`/auth` — **auch vor den lesenden** (§9). Die frühere Fassung ließ GET, HEAD
+und OPTIONS durch; das entfiel mit den Benutzerkonten, öffentlich ist seitdem
+nur noch `/api/board/:userSlug/:tournamentSlug`. Bildfelder nehmen laut
+`ImageUrlSchema` eine externe URL **oder** einen Pfad unter `/uploads/` —
+genau das, was der eigene Upload ausgibt.
 
 Die Board-Maße hängen an `--u` — einem Canvas-Pixel des 1600×900-Entwurfs,
 per `clamp()` an die kleinere Viewport-Achse gekoppelt. `.board` setzt
 zusätzlich Tailwinds `--spacing` darauf, sodass jede Zahlen-Utility
 unmittelbar in Canvas-Pixeln rechnet.
+
+Der **Medaillenspiegel** im Spieler-Modal zählt über den Board-Zustand
+(`boardById(id, true)`), nicht über `buildCharts`. Der Board-Zustand kennt
+beide Ergebnisformen — Scores **und** Matches — und beide Turniermodi; im
+Team-Modus wird der Spieler über `Team.members` auf sein Team abgebildet, denn
+er selbst steht dort in keiner Wertung. Gezählt wird über alle Disziplinen,
+auch die ungepinnten. Die Medaillen sind weiterhin nicht gespeichert, sondern
+bei jedem Abruf gerechnet: so kann kein Zähler veralten, wenn ein Score
+korrigiert wird, und das Turnierende ist kein eigener Schritt.
 
 ### Als Nächstes
 
@@ -515,6 +567,7 @@ Control-Panel über den Socket aufs Board ist geprüft — inklusive Toasts.
 | Weg                                         | Wozu                        |
 | ------------------------------------------- | --------------------------- |
 | `/control`                                  | Wertung eintragen           |
+| `/control/games`                            | Disziplin starten           |
 | `/board/<slug>`                             | Leinwand                    |
 | `/result/<slug>`                            | Siegerehrung                |
 | `npm run seed -- --yes`                     | Beispielturnier             |

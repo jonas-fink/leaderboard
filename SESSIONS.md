@@ -21,6 +21,68 @@ die Begründungen zu einzelnen Schritten.
 
 ---
 
+## 2026-09-13 — Vier Meldungen vom Board: Medaillen, Status, Wertungsliste, Rotation
+
+**Gebaut**
+
+- **Medaillen.** `leaderboard.service.getPlayerStats` zählt über
+  `boardById(id, true)` statt über `buildCharts`. Im Team-Modus wird der
+  Spieler über `Team.members` auf sein Team abgebildet.
+- **Disziplin-Status.** Neues Feld `endsAt` (nullable) am Game, drei
+  Status-Buttons und ein Minutenfeld auf der Game-Karte in `/control`,
+  Countdown im Statusfeld der Board-Karte (`LÄUFT · 12:34`, bei 0 `ZEIT UM`).
+- **Letzte Wertungen.** `useSubmitScore` invalidiert jetzt auch
+  `queryKeys.scores(...)`; `player-stats` wird als Präfix invalidiert, und
+  `useCreateMatch` zieht dieselben Keys nach.
+- **Gesamtwertung.** Blättert ab dem sechsten Teilnehmer in Fünferseiten über
+  das vorhandene `useRotation`.
+- `public/favicon.svg` — das `index.html` verwies seit je auf eine Datei, die
+  es nicht gab.
+
+**Entschieden**
+
+- Die Medaillen waren im Team-Modus **immer** 0, und in Versus-Disziplinen
+  auch im Spieler-Modus: `buildCharts` liest nur `Score`, nie `Match`, und
+  `withPlayers` wirft jede Zeile ohne `playerId` weg. Statt einen zweiten
+  Wertungspfad zu reparieren, hängt die Zählung jetzt am Board-Zustand — der
+  kennt beide Ergebnisformen und beide Modi bereits. Kostet einen Board-Build
+  beim Öffnen des Modals, was bei einem Event derselbe Bereich ist wie der
+  vorherige Chart-Build.
+- Der Status wird **von Hand** geschaltet, nicht aus dem Zustand abgeleitet.
+  Die Ableitung (»ein Ergebnis liegt vor, also läuft es«) wäre weniger
+  Bedienung, käme für den Countdown aber zu spät: der soll ab dem Startschuss
+  laufen. Gespeichert wird der Zielzeitpunkt, nicht die Dauer — dann braucht
+  die Leinwand keine Sekunde vom Server.
+- Bei 0 passiert nichts weiter. Ein Server-Timer, der selbst auf `finished`
+  schaltet, wäre ein bewegliches Teil mehr, und eine Runde, die eine halbe
+  Minute überzieht, gälte schon als beendet.
+- Zeilenhöhe in der Wertung nur dann fest, wenn geblättert wird. Sonst sähe
+  eine halbvolle letzte Seite anders aus als die erste; bei drei Teams bleibt
+  die Optik unverändert.
+
+**Nebenbei gefunden**
+
+- `useRotation` war kaputt, und zwar schon vorher: der Hook rief `setPage`
+  **innerhalb** des `setSecondsLeft`-Updaters. React 19 führt Updater im
+  Dev-Modus doppelt aus, die Seite sprang also zwei weiter — bei genau zwei
+  Seiten zurück auf die erste, was wie Stillstand aussah. Das betraf auch die
+  Disziplin-Karten bei fünf bis acht gepinnten Spielen. Der Hook zählt jetzt
+  einen einzigen wachsenden Takt und leitet Seite und Restzeit daraus ab; die
+  Regel steht in `KONVENTIONEN.md` §9.2.
+
+**Offen**
+
+- Für die Client-Logik gibt es weiterhin kein Testsetup. Countdown, Rotation
+  und die Invalidierungen sind nur im Browser geprüft; server-seitig decken
+  drei neue Fälle in `schemas.check.ts` den `endsAt`-Vertrag ab (nullable,
+  ISO, optional) — die Stelle, an der ein Klick auf »BEENDET« sonst mitten im
+  Event mit einer 400 endet.
+- Der Countdown vergleicht die Uhr des Beamer-Rechners mit einem Zeitpunkt vom
+  Server. Fällt die Drift je auf, müsste der Server sein `now` im
+  Board-Payload mitschicken.
+
+---
+
 ## 2026-09-13 — Feature 002, Nacharbeit BE-8: `playerHistory` ohne Turnierbezug
 
 **Gebaut**

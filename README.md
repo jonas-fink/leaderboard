@@ -41,6 +41,7 @@ Cluster, und das Skript leert alle Collections der Datenbank `leaderboard`.
 shared/     Zod-Vertrag und Formatter, von Client und Server geteilt
 server/     Express 5, Mongoose, Wertungslogik in services/
 src/        React 19, Vite, Tailwind v4, React Query
+public/     unverändert ausgelieferte Dateien (Favicon)
 ```
 
 Konfiguration über `server/.env` (Vorlage: `server/.env.example`).

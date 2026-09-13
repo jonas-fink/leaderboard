@@ -254,6 +254,12 @@ Query-Keys stehen weiterhin zentral im `queryKeys`-Objekt in `hooks/index.ts`,
 nie als Literal im Aufrufer. Mutationen invalidieren gezielt, nicht pauschal —
 die Begründung dazu steht bereits als Kommentar im Code.
 
+»Gezielt« heißt aber: **jede** Query, die der Schreibvorgang berührt. Wer einen
+Key vergisst, bekommt eine Ansicht, die erst nach einem Reload stimmt, und das
+fällt am Eventabend auf, nicht im Test. `useSubmitScore` hat genau so die
+Liste »Letzte Wertungen« stehen lassen. Vor dem Abhaken einer Mutation also
+durchgehen, welche Hooks dieselben Daten lesen.
+
 ### 9.2 Komponenten
 
 - Props als `interface XyzProps` direkt über der Komponente.
@@ -263,6 +269,15 @@ die Begründung dazu steht bereits als Kommentar im Code.
   brauchen, liegt eine Ebene höher in `components/`. Die Board-Ansicht hat
   andere Größen, andere Kontraste und keine Interaktion — geteilte Komponenten
   mit `variant`-Props enden hier erfahrungsgemäß in Fallunterscheidungen.
+- **Kein `setState` im Updater eines anderen `setState`.** React führt Updater
+  im Dev-Modus doppelt aus, um Unreinheit aufzudecken; ein eingebettetes
+  `setPage` läuft dann zweimal. `useRotation` tat genau das und sprang zwei
+  Seiten weiter — bei zwei Seiten also wieder auf die erste, und die Rotation
+  sah eingefroren aus. Stattdessen einen Zählwert führen und alles Übrige
+  daraus ableiten. Aus demselben Grund gehört `Date.now()` nicht in den
+  Komponentenkörper, auch nicht in einen Handler: `react-hooks/purity` meldet
+  das, und die Rechnung gehört auf Modulebene (`countdownTarget` in
+  `GameCard.tsx`).
 
 ### 9.3 Styling
 
@@ -298,12 +313,15 @@ Alle Env-Werte laufen über `config/index.ts`; `process.env` wird nirgends sonst
 gelesen. Pflichtwerte über `required()`, damit der Server beim Start scheitert
 statt später im Request.
 
-Neu hinzu: `ADMIN_PIN`, `TOKEN_SECRET`, `UPLOAD_DIR`, `CLIENT_ORIGIN`
-(für die CORS- und Socket-Konfiguration). Jeder neue Wert kommt gleichzeitig
-in `.env.example` — ohne Beispielwert ist er nicht fertig.
+Serverseitig: `MONGODB_URI` und `SESSION_SECRET` als Pflichtwerte, dazu
+`MONGODB_DB`, `PORT`, `NODE_ENV`, `UPLOAD_DIR` und `CLIENT_DIR` (nur im
+Container gesetzt). Jeder neue Wert kommt gleichzeitig in `.env.example` —
+ohne Beispielwert ist er nicht fertig.
 
-Clientseitig nur `VITE_API_URL` und `VITE_SOCKET_URL`, damit derselbe Build
-lokal und hinter dem Tunnel läuft.
+Clientseitig **keine**. Der Client spricht seinen eigenen Origin an; lokal
+leitet der Vite-Proxy weiter, im Betrieb liefert derselbe Express beides aus.
+`API_PORT` ist die einzige Ausnahme und gilt nur für `vite.config.ts` — damit
+sich eine zweite API-Instanz neben einer laufenden testen lässt.
 
 ---
 
