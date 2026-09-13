@@ -8,6 +8,8 @@ export * from './announce.ts';
 export * from './game.service.ts';
 export * from './player.service.ts';
 export * from './score.service.ts';
+export * from './match.service.ts';
+export * from './table.ts';
 export * from './leaderboard.service.ts';
 export * from './board.service.ts';
 export * from './upload.service.ts';

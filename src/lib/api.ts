@@ -11,11 +11,13 @@ import {
     LeaderboardChartDataSchema,
     ScoreRecordSchema,
     BoardStateSchema,
+    MatchSchema,
     type CreateGameInput,
     type UpdateGameInput,
     type CreatePlayerInput,
     type UpdatePlayerInput,
     type SubmitScoreInput,
+    type SubmitMatchInput,
     type LoginInput,
     type CreateTournamentInput,
     type UpdateTournamentInput,
@@ -181,3 +183,15 @@ export const submitScore = (input: SubmitScoreInput) =>
 
 export const deleteScore = (id: string) =>
     request(`/scores/${id}`, voidSchema, { method: 'DELETE' });
+
+// --- Matches (Versus-Disziplinen) -----------------------------------------
+
+/** Matches gibt es nur je Disziplin — ohne gameId liefert die Route 400. */
+export const fetchMatches = (gameId: string) =>
+    request(`/matches?gameId=${gameId}`, MatchSchema.array());
+
+export const createMatch = (input: SubmitMatchInput) =>
+    request('/matches', MatchSchema, { method: 'POST', ...body(input) });
+
+export const deleteMatch = (id: string) =>
+    request(`/matches/${id}`, voidSchema, { method: 'DELETE' });

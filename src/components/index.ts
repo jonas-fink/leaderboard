@@ -7,4 +7,5 @@ export * from './control/PlayerCard';
 export * from './control/PlayerFormModal';
 export * from './control/PlayerDetailModal';
 export * from './control/ScoreFormModal';
+export * from './control/MatchFormModal';
 export * from './control/ImageField';

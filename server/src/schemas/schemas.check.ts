@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CreateTournamentSchema } from '#schemas';
+import { CreateTournamentSchema, CreateGameSchema } from '#schemas';
 
 const turnier = (überschreiben: Record<string, unknown> = {}) => ({
     slug: 'retro-night',
@@ -40,4 +40,46 @@ test('eine leere Punktetabelle wird abgelehnt', () => {
         CreateTournamentSchema.safeParse(turnier({ pointsTable: [] })).success,
         false,
     );
+});
+
+const spiel = (überschreiben: Record<string, unknown> = {}) => ({
+    tournamentId: 't1',
+    slug: 'rocket-league',
+    title: 'Rocket League',
+    genre: 'sports',
+    primaryMetric: {
+        key: 'goals',
+        label: 'Tore',
+        sortOrder: 'DESC',
+        formatter: 'integer',
+    },
+    weight: 1,
+    ...überschreiben,
+});
+
+test('ohne scoring gilt metric, das Verhalten bleibt wie zuvor (AC-1.3)', () => {
+    const parsed = CreateGameSchema.parse(spiel());
+    assert.equal(parsed.scoring, 'metric');
+});
+
+test('versus mit sortOrder ASC wird abgelehnt (AC-1.2)', () => {
+    assert.equal(
+        CreateGameSchema.safeParse(
+            spiel({
+                scoring: 'versus',
+                primaryMetric: {
+                    key: 'goals',
+                    label: 'Tore',
+                    sortOrder: 'ASC',
+                    formatter: 'integer',
+                },
+            }),
+        ).success,
+        false,
+    );
+});
+
+test('versus mit sortOrder DESC wird angenommen', () => {
+    const parsed = CreateGameSchema.parse(spiel({ scoring: 'versus' }));
+    assert.equal(parsed.scoring, 'versus');
 });

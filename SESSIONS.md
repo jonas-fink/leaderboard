@@ -1030,3 +1030,66 @@ festgelegt, die übrigen Datenbanken im Cluster sieht die Verbindung nicht):
 **Nächster Schritt:** Implementierung in VS Code mit Claude Code, beginnend mit
 `points.ts` und `standings.ts` nach TDD. Session dort mit `PROJEKT.md` und
 `KONVENTIONEN.md` starten.
+
+---
+
+## 2026-09-13 — Feature 001: Match-basierte Wertung (fertig, nicht committet)
+
+Zwei Umbauten beschlossen und in `specs/` als Spezifikation abgelegt, statt sie
+direkt zu bauen: **001 Match-Wertung** (fertig) und **002 Benutzerkonten**
+(freigegeben, noch nicht begonnen).
+
+**Was 001 löst.** `Score` ist einseitig — ein Teilnehmer, eine Zahl, bester Wert
+gewinnt. Rocket League, FIFA und Tekken haben diese Form nicht: »A 3:1 B« ist
+eine Tatsache über zwei Teilnehmer, und der Sieg steht in keiner der beiden
+Zahlen. Neu ist deshalb `Game.scoring: 'metric' | 'versus'`, eine
+`Match`-Collection neben `Score` und ein zweites Rule-Modul `table.ts` neben
+`rank.ts`.
+
+**Warum das klein blieb.** §4.2 sagt: nur die Platzierung verlässt eine
+Disziplin, nie der Rohwert. Eine Versus-Disziplin liefert also nur eine
+Rangliste, und `points.ts`, `standings.ts` sowie der olympische Tie-Break
+bleiben **unangetastet** — im Diff sind sie nicht enthalten. Die Verzweigung
+steht an genau einer Stelle in `board.service.ts`.
+
+**Entscheidungen** (ausführlich als AD-1..AD-6 in `specs/001-match-wertung/architecture.md`):
+
+- 3/1/0 fest, keine `draws_allowed`-Option — ohne Unentschieden verhält es sich
+  identisch zum reinen Siegzählen, kostet also nichts.
+- Punkte → Tordifferenz → Tore. Differenz vor Toren, sonst schlägt 5:0/1:6 ein
+  konstantes 3:1/2:2.
+- Versus-Disziplinen sind auf `sortOrder: 'DESC'` festgelegt. Eine Zeile Schema
+  statt zwei Codepfade.
+- Ungleiche Spielzahl wird **sichtbar gemacht, nicht ausgeglichen** — Spalte
+  »Sp« auf der Board-Karte. Punkte durch Spiele zu teilen setzt 1/1 über 4/5.
+- Siege entscheiden nur den Rang *innerhalb* der Disziplin, nicht die
+  Gesamtwertung.
+- Kein Free-for-all, kein Spielplan-Generator.
+
+**Stand:** BE-1..BE-9, FE-1..FE-6 erledigt, 82/82 Tests, `tsc`, `lint` und
+`build` sauber, QA ohne Blocker und Majors. Alle Gates in `STATUS.md`
+signiert. **Noch nicht committet.**
+
+**Bekannt und offen**
+
+- F-1 (minor): Die Match-Regeln in Modell, Schema, Service und Controller haben
+  keinen automatisierten Test — entspricht dem Stand von `Score` heute.
+  `table.ts` selbst hat elf Fälle.
+- AC-2.7 unverifiziert: Board-Aktualisierung ohne Reload braucht zwei Tabs
+  gegen einen laufenden Server.
+- `Match`-Dokumente werden beim Löschen eines Games oder Turniers **nicht**
+  aufgeräumt, anders als `Score`. In 002 deckt AC-3.7 das ab.
+- `toJSONOptions` wandelt ObjectIds in Array-Subdokumenten nicht in Strings;
+  `match.service.ts` behilft sich lokal mit `String()`.
+
+**Nächster Schritt:** `/commit 001-match-wertung`, danach
+`/build 002-benutzerkonten` — 002 darf erst nach dem Commit beginnen, weil
+`BE-6`/`BE-7` dort dieselben Controller berühren.
+
+**Werkzeug:** Die SDD-Skills in `~/.claude/skills` waren in drei Punkten
+kaputt und wurden repariert: `disable-model-invocation` auf backend/frontend/qa
+verhinderte jede Dispatch aus `/build`; `/qa` verlangte Gates, die `/build`
+erst *nach* QA setzt (Deadlock); und die Argumentübergabe `<ordner> <task-ids>`
+wurde nicht gesplittet, sodass gezielte Wiederholungen unmöglich waren. Alle
+drei behoben.
+

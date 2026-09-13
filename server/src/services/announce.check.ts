@@ -46,6 +46,7 @@ const game = (
         slug: id,
         title: `Spiel ${id}`,
         genre: 'arcade',
+        scoring: 'metric',
         primaryMetric: {
             key: 'p',
             label: 'Punkte',

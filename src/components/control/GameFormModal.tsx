@@ -27,6 +27,9 @@ type FormState = {
     slug: string;
     genre: string;
     coverUrl: string;
+    // 'metric' (Einzelwerte, bestehend) oder 'versus' (Matches mit zwei
+    // Seiten, architecture.md 001-match-wertung).
+    scoring: string;
     metricLabel: string;
     metricKey: string;
     sortOrder: string;
@@ -40,6 +43,7 @@ const emptyForm: FormState = {
     slug: '',
     genre: 'arcade',
     coverUrl: '',
+    scoring: 'metric',
     metricLabel: '',
     metricKey: '',
     sortOrder: 'DESC',
@@ -53,6 +57,7 @@ const toForm = (game: Game): FormState => ({
     slug: game.slug,
     genre: game.genre,
     coverUrl: game.coverUrl ?? '',
+    scoring: game.scoring,
     metricLabel: game.primaryMetric.label,
     metricKey: game.primaryMetric.key,
     sortOrder: game.primaryMetric.sortOrder,
@@ -86,6 +91,11 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
     const set = (key: keyof FormState) => (value: string) =>
         setForm((prev) => ({ ...prev, [key]: value }));
 
+    // AC-1.1: eine Versus-Disziplin ist auf DESC festgelegt (AD-5) — das Feld
+    // wird deaktiviert, nicht nur validiert, damit es gar nicht erst falsch
+    // eingestellt werden kann.
+    const isVersus = form.scoring === 'versus';
+
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
 
@@ -95,6 +105,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             genre: form.genre,
             coverUrl: form.coverUrl.trim() || undefined,
             tournamentId,
+            scoring: form.scoring,
             pinned: game?.pinned ?? false,
             weight: game?.weight ?? 1,
             boardOrder: game?.boardOrder ?? 0,
@@ -102,7 +113,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             primaryMetric: {
                 label: form.metricLabel.trim(),
                 key: form.metricKey.trim() || slugify(form.metricLabel),
-                sortOrder: form.sortOrder,
+                sortOrder: isVersus ? 'DESC' : form.sortOrder,
                 formatter: form.formatter,
                 unit: form.unit.trim() || undefined,
             },
@@ -220,6 +231,41 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                         Wertung
                     </legend>
 
+                    <Field
+                        label="Wertungsart"
+                        error={errors.scoring}
+                        hint={
+                            isVersus
+                                ? 'Ergebnisse werden als Match zweier Seiten erfasst (z. B. 3:1).'
+                                : 'Ergebnisse werden als Einzelwert je Teilnehmer erfasst.'
+                        }
+                    >
+                        <select
+                            className={inputClass}
+                            value={form.scoring}
+                            onChange={(e) => {
+                                const scoring = e.target.value;
+                                setForm((prev) => ({
+                                    ...prev,
+                                    scoring,
+                                    // AC-1.1: beim Wechsel auf versus sofort
+                                    // auf DESC festlegen, nicht erst beim Absenden.
+                                    sortOrder:
+                                        scoring === 'versus'
+                                            ? 'DESC'
+                                            : prev.sortOrder,
+                                }));
+                            }}
+                        >
+                            <option value="metric">
+                                Metrisch (Einzelwerte)
+                            </option>
+                            <option value="versus">
+                                Versus (Match, zwei Seiten)
+                            </option>
+                        </select>
+                    </Field>
+
                     <div className="grid grid-cols-2 gap-4">
                         <Field
                             label="Metrik"
@@ -261,10 +307,16 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                         <Field
                             label="Besser ist"
                             error={errors['primaryMetric.sortOrder']}
+                            hint={
+                                isVersus
+                                    ? 'Bei Versus-Disziplinen fest auf „mehr“ (AD-5).'
+                                    : undefined
+                            }
                         >
                             <select
                                 className={inputClass}
-                                value={form.sortOrder}
+                                value={isVersus ? 'DESC' : form.sortOrder}
+                                disabled={isVersus}
                                 onChange={(e) =>
                                     set('sortOrder')(e.target.value)
                                 }

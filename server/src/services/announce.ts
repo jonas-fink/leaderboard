@@ -112,6 +112,13 @@ export const announce = (
 
         for (const entry of boardGame.entries) {
             const wasEntry = wasEntries.get(entry.entrantId);
+            // ponytail: kein eigener Ereignistyp für Versus-Disziplinen.
+            // `entry.value` trägt dort die Liga-Punkte (board.service.ts),
+            // und `isBetter` funktioniert unverändert, weil Versus-Disziplinen
+            // per AD-5 auf `sortOrder: 'DESC'` festgelegt sind — mehr
+            // Liga-Punkte sind immer besser. `first_score` feuert damit beim
+            // ersten Match, `personal_best` bei jedem Punktgewinn,
+            // `overtake`/`new_leader` unverändert über die Standings.
             if (
                 wasEntry &&
                 !isBetter(entry.value, wasEntry.value, primaryMetric.sortOrder)

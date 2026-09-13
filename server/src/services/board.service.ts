@@ -6,7 +6,9 @@ import { listTeams } from '#services/team.service';
 import { getPlayerMap } from '#services/player.service';
 import { listGames } from '#services/game.service';
 import { scoresByGame } from '#services/score.service';
+import { matchesByGame } from '#services/match.service';
 import { rankScores } from '#services/rank';
+import { buildTable } from '#services/table';
 import { placementPoints } from '#services/points';
 import { computeStandings } from '#services/standings';
 import type {
@@ -88,13 +90,32 @@ export const buildBoardState = async (
     const games = (await listGames(tournament.id)).sort(
         (a, b) => a.boardOrder - b.boardOrder,
     );
-    const buckets = await scoresByGame(games.map((game) => game.id));
+    // Matches werden nur für Versus-Disziplinen geladen, Scores nur für
+    // metrische — jede Disziplin liefert genau eine der beiden Ergebnisformen
+    // (AD-1 in architecture.md 001-match-wertung).
+    const metricGameIds = games
+        .filter((game) => game.scoring !== 'versus')
+        .map((game) => game.id);
+    const versusGameIds = games
+        .filter((game) => game.scoring === 'versus')
+        .map((game) => game.id);
+    const [buckets, matchBuckets] = await Promise.all([
+        scoresByGame(metricGameIds),
+        matchesByGame(versusGameIds),
+    ]);
 
     const results = games.map((game) => {
-        const ranked = rankScores(
-            buckets.get(game.id) ?? [],
-            game.primaryMetric.sortOrder,
-        );
+        // Die einzige Verzweigung der Wertungskette: beide Module liefern
+        // Zeilen mit `entrantId` und `rank`, also bleibt der Aufruf von
+        // `placementPoints` darunter für beide Zweige unverändert.
+        const ranked =
+            game.scoring === 'versus'
+                ? buildTable(matchBuckets.get(game.id) ?? [])
+                : rankScores(
+                      buckets.get(game.id) ?? [],
+                      game.primaryMetric.sortOrder,
+                  );
+
         const points = placementPoints(
             ranked.map((entry) => entry.rank),
             tournament.pointsTable,
@@ -102,12 +123,32 @@ export const buildBoardState = async (
         );
         return {
             game,
-            entries: ranked.map((entry, i): BoardGameEntry => ({
-                entrantId: entry.entrantId,
-                rank: entry.rank,
-                value: entry.primaryValue,
-                points: points[i]!,
-            })),
+            entries: ranked.map((entry, i): BoardGameEntry =>
+                'leaguePoints' in entry
+                    ? {
+                          entrantId: entry.entrantId,
+                          rank: entry.rank,
+                          // Bei scoring: 'versus' sind die Liga-Punkte der
+                          // Wert, nicht die Tordifferenz — die rechnet der
+                          // Client aus goalsFor/goalsAgainst (architecture.md).
+                          value: entry.leaguePoints,
+                          points: points[i]!,
+                          record: {
+                              played: entry.played,
+                              won: entry.won,
+                              drawn: entry.drawn,
+                              lost: entry.lost,
+                              goalsFor: entry.goalsFor,
+                              goalsAgainst: entry.goalsAgainst,
+                          },
+                      }
+                    : {
+                          entrantId: entry.entrantId,
+                          rank: entry.rank,
+                          value: entry.primaryValue,
+                          points: points[i]!,
+                      },
+            ),
         };
     });
 
@@ -154,6 +195,7 @@ export const buildBoardState = async (
                     genre: game.genre,
                     coverUrl: game.coverUrl,
                     primaryMetric: game.primaryMetric,
+                    scoring: game.scoring,
                 },
                 status: game.status,
                 entries,

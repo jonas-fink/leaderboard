@@ -1,6 +1,6 @@
 import { config } from '#config';
 import { connectDb, disconnectDb } from '#db';
-import { Tournament, Team, Game, Player, Score } from '#models';
+import { Tournament, Team, Game, Player, Score, Match } from '#models';
 
 /**
  * Legt ein Beispielturnier an. Die Datenbank enthält ausschließlich Testdaten,
@@ -37,6 +37,7 @@ const wipe = () =>
         Game.deleteMany({}),
         Player.deleteMany({}),
         Score.deleteMany({}),
+        Match.deleteMany({}),
     ]);
 
 const seed = async () => {
@@ -79,10 +80,13 @@ const seed = async () => {
             status: 'finished',
         },
         {
+            // Versus-Disziplin (architecture.md 001-match-wertung): Matches
+            // statt Scores, primaryMetric beschreibt den Wert je Seite.
             tournamentId,
             slug: 'rocket-league',
             title: 'Rocket League',
             genre: 'sports',
+            scoring: 'versus',
             primaryMetric: {
                 key: 'goals',
                 label: 'Tore',
@@ -122,10 +126,6 @@ const seed = async () => {
         ['mario-kart', 'pixel', 74_120],
         ['mario-kart', 'glitch', 79_640],
         ['mario-kart', 'echo', 83_010],
-        ['rocket-league', 'byte', 7],
-        ['rocket-league', 'nova', 5],
-        ['rocket-league', 'vector', 5],
-        ['rocket-league', 'glitch', 2],
     ];
 
     await Score.insertMany(
@@ -139,8 +139,35 @@ const seed = async () => {
         })),
     );
 
+    // Rocket League ist die Versus-Disziplin: sechs Matches, damit die
+    // Tabelle (table.ts) ohne Handarbeit im Browser sichtbar ist — inklusive
+    // zweier Unentschieden und eines Gleichstands bei Punkten und Differenz
+    // (glitch vs. pixel), der erst über die erzielten Tore aufgelöst wird.
+    const matches: [string, number, string, number][] = [
+        ['nova', 3, 'byte', 1],
+        ['pixel', 2, 'glitch', 2],
+        ['echo', 4, 'vector', 0],
+        ['nova', 1, 'pixel', 1],
+        ['byte', 5, 'vector', 2],
+        ['glitch', 3, 'echo', 3],
+    ];
+
+    await Match.insertMany(
+        matches.map(([homeUsername, homeValue, awayUsername, awayValue]) => ({
+            tournamentId,
+            gameId: gameId('rocket-league'),
+            entrantType: 'player',
+            sides: [
+                { playerId: id(homeUsername), value: homeValue },
+                { playerId: id(awayUsername), value: awayValue },
+            ],
+            playedAt: startsAt,
+        })),
+    );
+
     console.log(
-        `Fertig: 1 Turnier, ${players.length} Spieler, ${games.length} Games, ${results.length} Scores.`,
+        `Fertig: 1 Turnier, ${players.length} Spieler, ${games.length} Games, ` +
+            `${results.length} Scores, ${matches.length} Matches.`,
     );
     await disconnectDb();
 };

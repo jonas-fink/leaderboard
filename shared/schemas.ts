@@ -16,6 +16,8 @@ export const TournamentStatusSchema = z.enum([
     'archived',
 ]);
 export const GameStatusSchema = z.enum(['upcoming', 'running', 'finished']);
+// Metrisch (bisheriges Verhalten) oder Versus — zwei Teilnehmer je Ergebnis.
+export const ScoringModeSchema = z.enum(['metric', 'versus']);
 
 /**
  * Bild-Adresse: entweder extern oder ein Upload auf demselben Server.
@@ -52,6 +54,9 @@ const GameFields = z.object({
     title: z.string().min(1).max(100),
     genre: z.enum(['racing', 'sports', 'arcade', 'fps', 'custom']),
     coverUrl: ImageUrlSchema.optional(),
+    // Metrisch (bestehend) oder Versus (Matches mit zwei Seiten). Ohne Default
+    // hier — der sitzt nur im Create-Schema, siehe UpdateGameSchema.
+    scoring: ScoringModeSchema,
     primaryMetric: MetricConfigSchema,
     secondaryMetrics: z.array(MetricConfigSchema).optional(),
     // Gewichtungsfaktor der Disziplin — ein Finale zählt zum Beispiel doppelt.
@@ -65,6 +70,28 @@ const GameFields = z.object({
 
 // Game Schema (Antwort — der Server liefert die Defaults immer mit)
 export const GameSchema = GameFields.extend({ id: z.string().min(1) });
+
+/**
+ * Versus-Disziplinen sind auf absteigende Sortierung festgelegt (AD-5): bei
+ * einem Match entscheidet der höhere Wert den Sieg, und nur bei DESC ist
+ * "höher" auch "besser". Erzwungen hier und zusätzlich im
+ * Mongoose-Validator — die zweite Hälfte wie bei `hasMatchingEntrant`.
+ *
+ * Bei `UpdateGameSchema` (`.partial()`) greift die Prüfung nur, wenn ein
+ * Patch beide Felder widersprüchlich zugleich setzt; ein Patch, der nur eines
+ * von beiden ändert, kann ohne den bestehenden Datenbankstand nicht bewertet
+ * werden.
+ */
+const hasDescSortOrderForVersus = (game: {
+    scoring?: z.infer<typeof ScoringModeSchema>;
+    primaryMetric?: z.infer<typeof MetricConfigSchema>;
+}): boolean =>
+    game.scoring !== 'versus' ||
+    game.primaryMetric === undefined ||
+    game.primaryMetric.sortOrder === 'DESC';
+
+const DESC_INVARIANT_MESSAGE =
+    'Versus-Disziplinen benötigen primaryMetric.sortOrder: DESC';
 
 /** Spieler-Felder. Global und turnierübergreifend, damit die persönliche
  * Historie über mehrere Events hinweg erhalten bleibt. */
@@ -156,13 +183,17 @@ export const PlayerStatsSchema = z.object({
 
 // Input-Schemas: aus den Entity-Schemas abgeleitet, nicht neu geschrieben.
 export const CreateGameSchema = GameFields.extend({
+    scoring: ScoringModeSchema.default('metric'),
     weight: z.number().positive().default(1),
     pinned: z.boolean().default(false),
     boardOrder: z.number().int().nonnegative().default(0),
     status: GameStatusSchema.default('upcoming'),
-});
+}).refine(hasDescSortOrderForVersus, DESC_INVARIANT_MESSAGE);
 /** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
-export const UpdateGameSchema = GameFields.partial();
+export const UpdateGameSchema = GameFields.partial().refine(
+    hasDescSortOrderForVersus,
+    DESC_INVARIANT_MESSAGE,
+);
 /** avatarSeed leitet der Service deterministisch aus dem Namen ab. */
 export const CreatePlayerSchema = PlayerFields.omit({ avatarSeed: true });
 /** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
@@ -179,6 +210,7 @@ export const UpdateScoreSchema = ScoreFields.omit({
 
 // Type Exports via Inference
 export type SortOrder = z.infer<typeof SortOrderSchema>;
+export type ScoringMode = z.infer<typeof ScoringModeSchema>;
 export type MetricFormatter = z.infer<typeof MetricFormatterSchema>;
 export type MetricConfig = z.infer<typeof MetricConfigSchema>;
 export type Game = z.infer<typeof GameSchema>;
@@ -193,6 +225,76 @@ export type UpdateGameInput = z.infer<typeof UpdateGameSchema>;
 export type CreatePlayerInput = z.infer<typeof CreatePlayerSchema>;
 export type UpdatePlayerInput = z.infer<typeof UpdatePlayerSchema>;
 export type UpdateScoreInput = z.infer<typeof UpdateScoreSchema>;
+
+// ---------------------------------------------------------------------------
+// Match (Versus-Disziplinen, architecture.md 001-match-wertung)
+// Eine Begegnung zwischen zwei Teilnehmern mit je einem Wert — anders als
+// Score, das einen einzelnen Teilnehmer gegen die Bestenliste stellt.
+// ---------------------------------------------------------------------------
+
+export const MatchSideSchema = z.object({
+    playerId: z.string().min(1).optional(),
+    teamId: z.string().min(1).optional(),
+    value: z.number().nonnegative(),
+});
+
+/** Match-Felder ohne Defaults; `playedAt` hat serverseitig einen Default
+ * (jetzt), siehe SubmitMatchSchema. */
+const MatchFields = z.object({
+    tournamentId: z.string().min(1),
+    gameId: z.string().min(1),
+    entrantType: TournamentModeSchema,
+    // Ein Match ist immer zwei Seiten — Free-for-all ist ausdrücklich out
+    // of scope (requirements.md Scope/Out). `z.tuple` erzwingt das strukturell.
+    sides: z.tuple([MatchSideSchema, MatchSideSchema]),
+});
+
+const matchSideMatchesEntrant = (
+    side: z.infer<typeof MatchSideSchema>,
+    entrantType: z.infer<typeof TournamentModeSchema>,
+): boolean =>
+    entrantType === 'player'
+        ? side.playerId !== undefined && side.teamId === undefined
+        : side.teamId !== undefined && side.playerId === undefined;
+
+/**
+ * Genau die zu `entrantType` passende ID ist je Seite gesetzt — zweite
+ * Hälfte im Mongoose-Validator, wie bei `hasMatchingEntrant` für Score.
+ */
+const hasMatchingEntrants = (match: z.infer<typeof MatchFields>): boolean =>
+    match.sides.every((side) =>
+        matchSideMatchesEntrant(side, match.entrantType),
+    );
+
+/** Die beiden Seiten dürfen nicht denselben Teilnehmer nennen. */
+const hasDistinctEntrants = (match: z.infer<typeof MatchFields>): boolean => {
+    const idOf = (side: z.infer<typeof MatchSideSchema>) =>
+        match.entrantType === 'player' ? side.playerId : side.teamId;
+    return idOf(match.sides[0]) !== idOf(match.sides[1]);
+};
+
+// Match-Submit Schema (für POST-Requests /api/matches)
+export const SubmitMatchSchema = MatchFields.extend({
+    playedAt: z.iso.datetime().optional(),
+})
+    .refine(
+        hasMatchingEntrants,
+        'Zu entrantType gehört je Seite genau eine ID: playerId oder teamId',
+    )
+    .refine(
+        hasDistinctEntrants,
+        'Die beiden Seiten müssen unterschiedliche Teilnehmer sein',
+    );
+
+// Match Schema (Antwort — Response von POST/GET /api/matches)
+export const MatchSchema = MatchFields.extend({
+    id: z.string().min(1),
+    playedAt: z.iso.datetime(),
+});
+
+export type MatchSide = z.infer<typeof MatchSideSchema>;
+export type SubmitMatchInput = z.infer<typeof SubmitMatchSchema>;
+export type Match = z.infer<typeof MatchSchema>;
 
 // ---------------------------------------------------------------------------
 // Board-Vertrag — Payload für board:update und event:announce (PROJEKT.md §5)
@@ -227,16 +329,34 @@ export const StandingsEntrySchema = z.object({
     rankCounts: z.array(z.number().int().nonnegative()),
 });
 
+/**
+ * Die Tabellenzeile einer Versus-Disziplin auf der Board-Karte (architecture.md
+ * 001-match-wertung). Die Tordifferenz ist bewusst kein Feld — der Client
+ * rechnet `goalsFor - goalsAgainst`.
+ */
+export const MatchRecordSchema = z.object({
+    played: z.number().int().nonnegative(),
+    won: z.number().int().nonnegative(),
+    drawn: z.number().int().nonnegative(),
+    lost: z.number().int().nonnegative(),
+    goalsFor: z.number().int().nonnegative(),
+    goalsAgainst: z.number().int().nonnegative(),
+});
+
 /** Ein Ergebnis innerhalb einer Disziplin. */
 export const BoardGameEntrySchema = z.object({
     // Verweist auf StandingsEntry — Name, Bild und Farbe stehen genau einmal
     // im Payload und können nicht auseinanderlaufen.
     entrantId: z.string().min(1),
     rank: z.number().int().positive(),
-    // Rohwert der Disziplin, identisch mit Score.primaryValue.
+    // Rohwert der Disziplin bei `scoring: 'metric'` (identisch mit
+    // Score.primaryValue); bei `scoring: 'versus'` sind es die Liga-Punkte.
     value: SubmitScoreSchema.shape.primaryValue,
     // Platzierungspunkte inkl. Mittelung und Gewichtung (§4.2).
     points: z.number().nonnegative(),
+    // Nur bei `scoring: 'versus'` gesetzt — metrische Disziplinen haben
+    // keine Tabelle.
+    record: MatchRecordSchema.optional(),
 });
 
 /**
@@ -252,6 +372,7 @@ export const BoardGameSchema = z.object({
         genre: true,
         coverUrl: true,
         primaryMetric: true,
+        scoring: true,
     }),
     status: GameStatusSchema,
     entries: z.array(BoardGameEntrySchema),
@@ -331,6 +452,7 @@ export type TournamentMode = z.infer<typeof TournamentModeSchema>;
 export type TournamentStatus = z.infer<typeof TournamentStatusSchema>;
 export type GameStatus = z.infer<typeof GameStatusSchema>;
 export type StandingsEntry = z.infer<typeof StandingsEntrySchema>;
+export type MatchRecord = z.infer<typeof MatchRecordSchema>;
 export type BoardGameEntry = z.infer<typeof BoardGameEntrySchema>;
 export type BoardGame = z.infer<typeof BoardGameSchema>;
 export type BoardState = z.infer<typeof BoardStateSchema>;

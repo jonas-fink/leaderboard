@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { LeaderChartCard, ScoreFormModal } from '../components';
-import { useLeaderboard } from '../hooks';
+import { useLeaderboard, useTournaments } from '../hooks';
 
 /** Ein Board mit vollständiger Rangliste statt nur Top 5. */
 const GameDetail = () => {
     const { slug = '' } = useParams();
     const { data, isLoading, error } = useLeaderboard(slug);
+    const { data: tournaments = [] } = useTournaments();
     const [scoreOpen, setScoreOpen] = useState(false);
+
+    // Der Modus entscheidet, ob das Formular Spieler oder Teams anbietet
+    // (PROJEKT.md §3) — hier über die eigene Disziplin ermittelt statt über
+    // `useTournamentContext`, das nur das zuletzt gestartete Turnier kennt und
+    // damit am falschen Turnier vorbeizeigen könnte.
+    const tournament = data
+        ? tournaments.find((t) => t.id === data.game.tournamentId)
+        : undefined;
 
     return (
         <section className="p-4 md:p-0">
@@ -33,10 +42,11 @@ const GameDetail = () => {
                         limit={Infinity}
                         onSubmitScore={() => setScoreOpen(true)}
                     />
-                    {scoreOpen && (
+                    {scoreOpen && tournament && (
                         <ScoreFormModal
                             open
                             game={data.game}
+                            entrantType={tournament.mode}
                             onClose={() => setScoreOpen(false)}
                         />
                     )}

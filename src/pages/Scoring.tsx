@@ -1,22 +1,18 @@
-import { useState, type SubmitEvent } from 'react';
-import { Field, FormError } from '../components';
+import { useState } from 'react';
+import { Field, MatchFormModal, ScoreFormModal } from '../components';
+import { inputClass, labelClass, primaryButtonClass } from '../lib/form';
 import {
-    ghostButtonClass,
-    inputClass,
-    labelClass,
-    parseTime,
-    primaryButtonClass,
-} from '../lib/form';
-import {
+    useDeleteMatch,
     useDeleteScore,
     useGames,
+    useMatches,
     usePlayers,
     useScores,
-    useSubmitScore,
     useTeams,
 } from '../hooks';
 import { useTournamentContext } from '../hooks/useTournamentContext';
 import { formatMetricValue } from '../utils';
+import type { MatchSide } from '../schemas';
 
 /**
  * Relative Zeit über `Intl.RelativeTimeFormat` statt selbst gerechnet: das
@@ -42,7 +38,10 @@ const ago = (iso: string): string => {
  * Wertung eintragen und zurücknehmen — der Reiter, auf dem der Abend läuft.
  *
  * Ob Spieler oder Team gewählt wird, entscheidet der Modus des Turniers, nicht
- * die Disziplin: ein Turnier ist entweder das eine oder das andere (§3).
+ * die Disziplin: ein Turnier ist entweder das eine oder das andere (§3). Die
+ * Disziplin selbst entscheidet aber, welches Formular sich öffnet (AC-2.6):
+ * `ScoreFormModal` für metrische, `MatchFormModal` für Versus-Disziplinen
+ * (architecture.md 001-match-wertung).
  */
 const Scoring = () => {
     const { tournament } = useTournamentContext();
@@ -51,13 +50,40 @@ const Scoring = () => {
     const { data: teams = [] } = useTeams(tournament?.id);
     const { data: scores = [] } = useScores(tournament?.id);
 
-    const submitScore = useSubmitScore();
     const deleteScore = useDeleteScore(tournament?.id ?? '');
 
     const [gameId, setGameId] = useState('');
-    const [entrantId, setEntrantId] = useState('');
-    const [value, setValue] = useState('');
-    const [error, setError] = useState<string | null>(null);
+    const [formOpen, setFormOpen] = useState(false);
+
+    // Ableitungen laufen unbedingt vor dem frühen Rückgabewert — sonst
+    // würden useMatches/useDeleteMatch je nach Turnierzustand mal aufgerufen
+    // und mal nicht (react-hooks/rules-of-hooks).
+    const ownGames = tournament
+        ? games.filter((g) => g.tournamentId === tournament.id)
+        : [];
+    const game = ownGames.find((g) => g.id === gameId) ?? ownGames[0];
+    const isVersus = game?.scoring === 'versus';
+    const teamMode = tournament?.mode === 'team';
+    const entrants = teamMode
+        ? teams.map((t) => ({ id: t.id, name: t.name }))
+        : players.map((p) => ({
+              id: p.id,
+              name: p.displayName || p.username,
+          }));
+
+    const nameOfEntrant = (id: string | undefined) =>
+        entrants.find((e) => e.id === id)?.name ?? 'Unbekannt';
+    const nameOfSide = (side: MatchSide) =>
+        nameOfEntrant(side.playerId ?? side.teamId);
+
+    // Matches gibt es nur je Disziplin (architecture.md § API contract) —
+    // ohne gefundene Versus-Disziplin bleibt der Hook untätig.
+    const {
+        data: matches = [],
+        isLoading: matchesLoading,
+        error: matchesError,
+    } = useMatches(isVersus ? game?.id : undefined);
+    const deleteMatch = useDeleteMatch(game?.id ?? '');
 
     if (!tournament) {
         return (
@@ -67,67 +93,14 @@ const Scoring = () => {
         );
     }
 
-    const ownGames = games.filter((g) => g.tournamentId === tournament.id);
-    const game = ownGames.find((g) => g.id === gameId) ?? ownGames[0];
-    const teamMode = tournament.mode === 'team';
-    const entrants = teamMode
-        ? teams.map((t) => ({ id: t.id, name: t.name }))
-        : players.map((p) => ({
-              id: p.id,
-              name: p.displayName || p.username,
-          }));
-    const isTime = game?.primaryMetric.formatter === 'time_ms';
-
-    const handleSubmit = (event: SubmitEvent) => {
-        event.preventDefault();
-        if (!game) return setError('Es gibt noch keine Disziplin.');
-        if (!entrantId)
-            return setError(
-                teamMode ? 'Bitte ein Team wählen.' : 'Bitte wen wählen.',
-            );
-
-        const primaryValue = isTime
-            ? parseTime(value)
-            : Number(value.replace(',', '.'));
-        if (primaryValue === null || !Number.isFinite(primaryValue)) {
-            return setError(
-                isTime
-                    ? 'Zeit im Format mm:ss.mmm eingeben, z. B. 1:32.450'
-                    : 'Bitte eine Zahl eingeben.',
-            );
-        }
-        if (primaryValue < 0)
-            return setError('Der Wert darf nicht negativ sein.');
-
-        setError(null);
-        submitScore.mutate(
-            {
-                tournamentId: tournament.id,
-                gameId: game.id,
-                entrantType: tournament.mode,
-                ...(teamMode ? { teamId: entrantId } : { playerId: entrantId }),
-                primaryValue,
-            },
-            { onSuccess: () => setValue('') },
-        );
-    };
-
-    const nameOf = (score: (typeof scores)[number]) => {
-        const id = score.teamId ?? score.playerId;
-        return entrants.find((e) => e.id === id)?.name ?? 'Unbekannt';
-    };
-
     return (
         <div className="grid gap-6 lg:grid-cols-[640px_minmax(0,1fr)]">
             <section className="flex flex-col border-2 border-line bg-surface">
                 <h2 className="border-b-2 border-line px-5 py-3.5 font-display text-[15px] tracking-[0.12em] text-ink">
-                    WERTUNG EINTRAGEN
+                    ERGEBNIS ERFASSEN
                 </h2>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col gap-5 p-5"
-                >
+                <div className="flex flex-col gap-5 p-5">
                     <Field label="Disziplin">
                         <select
                             className={inputClass}
@@ -137,138 +110,186 @@ const Scoring = () => {
                             {ownGames.map((option) => (
                                 <option key={option.id} value={option.id}>
                                     {option.title} —{' '}
-                                    {option.primaryMetric.label}
+                                    {option.scoring === 'versus'
+                                        ? 'Match'
+                                        : option.primaryMetric.label}
                                 </option>
                             ))}
                         </select>
                     </Field>
 
-                    <Field label={teamMode ? 'Team' : 'Spieler'}>
-                        <select
-                            className={inputClass}
-                            value={entrantId}
-                            onChange={(e) => setEntrantId(e.target.value)}
-                        >
-                            <option value="">Bitte wählen …</option>
-                            {entrants.map((entrant) => (
-                                <option key={entrant.id} value={entrant.id}>
-                                    {entrant.name}
-                                </option>
-                            ))}
-                        </select>
-                    </Field>
+                    {!game && (
+                        <p className="text-sm text-ink-mute">
+                            Es gibt noch keine Disziplin. Lege im Reiter GAMES
+                            eine an.
+                        </p>
+                    )}
 
-                    <Field
-                        label={game?.primaryMetric.label ?? 'Wert'}
-                        hint={
-                            isTime
-                                ? 'Format mm:ss.mmm'
-                                : game &&
-                                  `${game.primaryMetric.sortOrder === 'ASC' ? 'kleiner' : 'größer'} ist besser`
-                        }
-                    >
-                        <input
-                            className={`${inputClass} font-display text-xl`}
-                            value={value}
-                            onChange={(e) => setValue(e.target.value)}
-                            placeholder={isTime ? '01:58.412' : '0'}
-                            inputMode={isTime ? 'text' : 'decimal'}
-                        />
-                    </Field>
-
-                    {/* Kein Vorschau-Rang: der Server ist die einzige
-                        Rechenquelle (KONVENTIONEN §8). Der Platz steht eine
-                        Sekunde später in der Liste rechts. */}
-
-                    <FormError
-                        error={
-                            error
-                                ? new Error(error)
-                                : (submitScore.error ?? null)
-                        }
-                    />
-
-                    <div className="flex gap-3">
-                        <button
-                            type="submit"
-                            className={primaryButtonClass}
-                            disabled={submitScore.isPending}
-                        >
-                            {submitScore.isPending
-                                ? 'Trage ein …'
-                                : 'EINTRAGEN'}
-                        </button>
-                        <button
-                            type="button"
-                            className={ghostButtonClass}
-                            onClick={() => {
-                                setValue('');
-                                setEntrantId('');
-                                setError(null);
-                            }}
-                        >
-                            LEEREN
-                        </button>
-                    </div>
-                </form>
+                    {game && (
+                        <>
+                            <p className="text-sm text-ink-mute">
+                                {isVersus
+                                    ? '3 Punkte für den Sieg, 1 für das Unentschieden.'
+                                    : `${game.primaryMetric.label} · ${
+                                          game.primaryMetric.sortOrder ===
+                                          'ASC'
+                                              ? 'kleiner'
+                                              : 'größer'
+                                      } ist besser`}
+                            </p>
+                            <button
+                                type="button"
+                                className={primaryButtonClass}
+                                onClick={() => setFormOpen(true)}
+                            >
+                                {isVersus
+                                    ? 'MATCH ERFASSEN'
+                                    : 'ERGEBNIS EINTRAGEN'}
+                            </button>
+                        </>
+                    )}
+                </div>
             </section>
 
             <section className="flex flex-col border-2 border-line bg-surface">
                 <div className="flex items-center justify-between gap-3 border-b-2 border-line px-5 py-3.5">
                     <h2 className="font-display text-[15px] tracking-[0.12em] text-ink">
-                        LETZTE WERTUNGEN
+                        {isVersus ? 'ERFASSTE SPIELE' : 'LETZTE WERTUNGEN'}
                     </h2>
                     <span className={labelClass + ' mb-0'}>
-                        {scores.length} gezeigt
+                        {isVersus ? matches.length : scores.length} gezeigt
                     </span>
                 </div>
 
-                <ul className="divide-y divide-line">
-                    {scores.map((score) => {
-                        const scoreGame = games.find(
-                            (g) => g.id === score.gameId,
-                        );
-                        return (
-                            <li
-                                key={score.id}
-                                className="flex items-center gap-4 px-5 py-3"
-                            >
-                                <div className="min-w-0 grow">
-                                    <div className="truncate text-[15px] font-semibold text-ink">
-                                        {nameOf(score)} ·{' '}
-                                        {scoreGame?.title ?? 'Disziplin'}
-                                    </div>
-                                    <div className="text-xs uppercase tracking-[0.12em] text-ink-mute">
-                                        {ago(score.recordedAt)}
-                                    </div>
-                                </div>
-                                <div className="shrink-0 font-display text-ink">
-                                    {scoreGame
-                                        ? formatMetricValue(
-                                              score.primaryValue,
-                                              scoreGame.primaryMetric,
-                                          )
-                                        : score.primaryValue}
-                                </div>
-                                <button
-                                    type="button"
-                                    aria-label="Wertung zurücknehmen"
-                                    title="Zurücknehmen"
-                                    className="shrink-0 cursor-pointer border-2 border-line px-2 py-1 text-ink-mute transition-colors hover:border-orange hover:text-orange"
-                                    onClick={() => deleteScore.mutate(score.id)}
+                {isVersus ? (
+                    <>
+                        {matchesError && (
+                            <p className="m-5 border-2 border-orange bg-orange/10 px-3 py-2 text-sm text-orange">
+                                {matchesError.message}
+                            </p>
+                        )}
+
+                        {matchesLoading && (
+                            <ul className="divide-y divide-line">
+                                {Array.from({ length: 3 }, (_, i) => (
+                                    <li
+                                        key={i}
+                                        className="h-16 animate-pulse bg-surface-2"
+                                    />
+                                ))}
+                            </ul>
+                        )}
+
+                        {!matchesLoading && !matchesError && (
+                            <ul className="divide-y divide-line">
+                                {matches.map((match) => (
+                                    <li
+                                        key={match.id}
+                                        className="flex items-center gap-4 px-5 py-3"
+                                    >
+                                        <div className="min-w-0 grow">
+                                            <div className="truncate text-[15px] font-semibold text-ink">
+                                                {nameOfSide(match.sides[0])}{' '}
+                                                <span className="font-display text-ink-mute">
+                                                    {match.sides[0].value} :{' '}
+                                                    {match.sides[1].value}
+                                                </span>{' '}
+                                                {nameOfSide(match.sides[1])}
+                                            </div>
+                                            <div className="text-xs uppercase tracking-[0.12em] text-ink-mute">
+                                                {ago(match.playedAt)}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            aria-label="Match zurücknehmen"
+                                            title="Zurücknehmen"
+                                            className="shrink-0 cursor-pointer border-2 border-line px-2 py-1 text-ink-mute transition-colors hover:border-orange hover:text-orange"
+                                            onClick={() =>
+                                                deleteMatch.mutate(match.id)
+                                            }
+                                        >
+                                            ↺
+                                        </button>
+                                    </li>
+                                ))}
+                                {matches.length === 0 && (
+                                    <li className="px-5 py-6 text-ink-mute">
+                                        Noch kein Spiel erfasst.
+                                    </li>
+                                )}
+                            </ul>
+                        )}
+                    </>
+                ) : (
+                    <ul className="divide-y divide-line">
+                        {scores.map((score) => {
+                            const scoreGame = games.find(
+                                (g) => g.id === score.gameId,
+                            );
+                            return (
+                                <li
+                                    key={score.id}
+                                    className="flex items-center gap-4 px-5 py-3"
                                 >
-                                    ↺
-                                </button>
+                                    <div className="min-w-0 grow">
+                                        <div className="truncate text-[15px] font-semibold text-ink">
+                                            {nameOfEntrant(
+                                                score.teamId ?? score.playerId,
+                                            )}{' '}
+                                            · {scoreGame?.title ?? 'Disziplin'}
+                                        </div>
+                                        <div className="text-xs uppercase tracking-[0.12em] text-ink-mute">
+                                            {ago(score.recordedAt)}
+                                        </div>
+                                    </div>
+                                    <div className="shrink-0 font-display text-ink">
+                                        {scoreGame
+                                            ? formatMetricValue(
+                                                  score.primaryValue,
+                                                  scoreGame.primaryMetric,
+                                              )
+                                            : score.primaryValue}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        aria-label="Wertung zurücknehmen"
+                                        title="Zurücknehmen"
+                                        className="shrink-0 cursor-pointer border-2 border-line px-2 py-1 text-ink-mute transition-colors hover:border-orange hover:text-orange"
+                                        onClick={() =>
+                                            deleteScore.mutate(score.id)
+                                        }
+                                    >
+                                        ↺
+                                    </button>
+                                </li>
+                            );
+                        })}
+                        {scores.length === 0 && (
+                            <li className="px-5 py-6 text-ink-mute">
+                                Noch nichts eingetragen.
                             </li>
-                        );
-                    })}
-                    {scores.length === 0 && (
-                        <li className="px-5 py-6 text-ink-mute">
-                            Noch nichts eingetragen.
-                        </li>
-                    )}
-                </ul>
+                        )}
+                    </ul>
+                )}
             </section>
+
+            {game && !isVersus && formOpen && (
+                <ScoreFormModal
+                    open
+                    game={game}
+                    entrantType={tournament.mode}
+                    onClose={() => setFormOpen(false)}
+                />
+            )}
+            {game && isVersus && formOpen && (
+                <MatchFormModal
+                    open
+                    game={game}
+                    entrantType={tournament.mode}
+                    onClose={() => setFormOpen(false)}
+                />
+            )}
         </div>
     );
 };

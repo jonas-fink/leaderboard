@@ -11,6 +11,7 @@ export type {
     MetricConfig,
     MetricFormatter,
     SortOrder,
+    ScoringMode,
     SubmitScoreInput,
     LeaderboardEntry,
     LeaderboardChartData,
@@ -21,6 +22,9 @@ export type {
     CreatePlayerInput,
     UpdatePlayerInput,
     UpdateScoreInput,
+    MatchSide,
+    SubmitMatchInput,
+    Match,
     Tournament,
     Team,
     CreateTournamentInput,
@@ -31,6 +35,7 @@ export type {
     TournamentStatus,
     GameStatus,
     StandingsEntry,
+    MatchRecord,
     BoardGameEntry,
     BoardGame,
     BoardState,
@@ -65,6 +70,20 @@ export type RawScore = {
 };
 
 export type RankedScore = RawScore & { rank: number };
+
+/** Ein Match, wie es die DB verlässt — flach, IDs als Strings. */
+export type RawMatch = {
+    id: string;
+    tournamentId: string;
+    gameId: string;
+    entrantType: TournamentMode;
+    /** Wie bei RawScore zu entrantId kollabiert — playerId ?? teamId. */
+    sides: [
+        { entrantId: string; value: number },
+        { entrantId: string; value: number },
+    ];
+    playedAt: string;
+};
 
 /** Fehler mit HTTP-Status, den die Error-Middleware direkt durchreicht. */
 export type HttpError = Error & { status?: number };

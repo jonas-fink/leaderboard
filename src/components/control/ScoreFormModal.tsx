@@ -7,34 +7,55 @@ import {
     parseTime,
     primaryButtonClass,
 } from '../../lib/form';
-import { usePlayers, useSubmitScore } from '../../hooks';
-import type { Game } from '../../schemas';
+import { usePlayers, useSubmitScore, useTeams } from '../../hooks';
+import type { Game, TournamentMode } from '../../schemas';
 
 interface ScoreFormModalProps {
     open: boolean;
     onClose: () => void;
     game: Game;
+    /** Entscheidet über Spieler- oder Team-Select — gilt fürs ganze Turnier,
+     * nicht je Disziplin (PROJEKT.md §3), deshalb vom Aufrufer gereicht statt
+     * hier neu ermittelt. Vorbild `MatchFormModal.tsx`. */
+    entrantType: TournamentMode;
 }
 
 export const ScoreFormModal = ({
     open,
     onClose,
     game,
+    entrantType,
 }: ScoreFormModalProps) => {
-    const [playerId, setPlayerId] = useState('');
+    const [entrantId, setEntrantId] = useState('');
     const [value, setValue] = useState('');
     const [error, setError] = useState<string | null>(null);
 
-    const { data: players = [], isLoading } = usePlayers();
+    const { data: players = [], isLoading: playersLoading } = usePlayers();
+    const { data: teams = [], isLoading: teamsLoading } = useTeams(
+        game.tournamentId,
+    );
     const submitScore = useSubmitScore();
+
+    const teamMode = entrantType === 'team';
+    const entrants = teamMode
+        ? teams.map((t) => ({ id: t.id, name: t.name }))
+        : players.map((p) => ({
+              id: p.id,
+              name: p.displayName || p.username,
+          }));
+    const isLoading = teamMode ? teamsLoading : playersLoading;
 
     const isTime = game.primaryMetric.formatter === 'time_ms';
 
     const handleSubmit = (event: SubmitEvent) => {
         event.preventDefault();
 
-        if (!playerId) {
-            setError('Bitte einen Spieler wählen.');
+        if (!entrantId) {
+            setError(
+                teamMode
+                    ? 'Bitte ein Team wählen.'
+                    : 'Bitte einen Spieler wählen.',
+            );
             return;
         }
 
@@ -60,8 +81,10 @@ export const ScoreFormModal = ({
             {
                 tournamentId: game.tournamentId,
                 gameId: game.id,
-                entrantType: 'player',
-                playerId,
+                entrantType,
+                ...(teamMode
+                    ? { teamId: entrantId }
+                    : { playerId: entrantId }),
                 primaryValue,
             },
             {
@@ -76,19 +99,23 @@ export const ScoreFormModal = ({
     return (
         <Modal open={open} onClose={onClose} title={`Score — ${game.title}`}>
             <form onSubmit={handleSubmit} className="space-y-4">
-                <Field label="Spieler">
+                <Field label={teamMode ? 'Team' : 'Spieler'}>
                     <select
                         className={inputClass}
-                        value={playerId}
-                        onChange={(e) => setPlayerId(e.target.value)}
+                        value={entrantId}
+                        onChange={(e) => setEntrantId(e.target.value)}
                         disabled={isLoading}
                     >
                         <option value="">
-                            {isLoading ? 'lädt…' : 'Spieler wählen'}
+                            {isLoading
+                                ? 'lädt…'
+                                : teamMode
+                                  ? 'Team wählen'
+                                  : 'Spieler wählen'}
                         </option>
-                        {players.map((player) => (
-                            <option key={player.id} value={player.id}>
-                                {player.username}
+                        {entrants.map((entrant) => (
+                            <option key={entrant.id} value={entrant.id}>
+                                {entrant.name}
                             </option>
                         ))}
                     </select>
@@ -112,10 +139,11 @@ export const ScoreFormModal = ({
                     />
                 </Field>
 
-                {players.length === 0 && !isLoading && (
+                {entrants.length === 0 && !isLoading && (
                     <p className=" border-2 border-line bg-surface-2 px-3 py-2 text-sm text-ink-soft">
-                        Es gibt noch keine Spieler — leg zuerst welche unter
-                        „Spieler" an.
+                        {teamMode
+                            ? 'Es gibt noch keine Teams — leg zuerst welche unter „Teams" an.'
+                            : 'Es gibt noch keine Spieler — leg zuerst welche unter „Spieler" an.'}
                     </p>
                 )}
 

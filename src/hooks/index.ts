@@ -6,6 +6,7 @@ import type {
     CreatePlayerInput,
     UpdatePlayerInput,
     SubmitScoreInput,
+    SubmitMatchInput,
     CreateTournamentInput,
     UpdateTournamentInput,
     CreateTeamInput,
@@ -23,6 +24,7 @@ export const queryKeys = {
         ['board', slug, allGames] as const,
     teams: (tournamentId: string) => ['teams', tournamentId] as const,
     scores: (tournamentId: string) => ['scores', tournamentId] as const,
+    matches: (gameId: string) => ['matches', gameId] as const,
 };
 
 // --- Queries -------------------------------------------------------------
@@ -70,6 +72,13 @@ export const usePlayerStats = (id: string | null) =>
         queryKey: queryKeys.playerStats(id ?? ''),
         queryFn: () => api.fetchPlayerStats(id!),
         enabled: Boolean(id),
+    });
+
+export const useMatches = (gameId: string | undefined) =>
+    useQuery({
+        queryKey: queryKeys.matches(gameId ?? ''),
+        queryFn: () => api.fetchMatches(gameId!),
+        enabled: Boolean(gameId),
     });
 
 // --- Mutations -----------------------------------------------------------
@@ -235,6 +244,34 @@ export const useDeleteScore = (tournamentId: string) => {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: queryKeys.scores(tournamentId) });
             qc.invalidateQueries({ queryKey: queryKeys.leaderboards });
+        },
+    });
+};
+
+/**
+ * Ein erfasstes Match rührt nur die Match-Liste seiner Disziplin an — das
+ * Board selbst bekommt seinen neuen Zustand über `board:update` (§8), nicht
+ * über einen zweiten Roundtrip aus diesem Tab.
+ */
+export const useCreateMatch = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: SubmitMatchInput) => api.createMatch(input),
+        onSuccess: (match) =>
+            qc.invalidateQueries({
+                queryKey: queryKeys.matches(match.gameId),
+            }),
+    });
+};
+
+/** Wie `useDeleteScore`: `DELETE` antwortet 204, die gameId kommt deshalb vom
+ * Aufrufer statt aus der Antwort. */
+export const useDeleteMatch = (gameId: string) => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => api.deleteMatch(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: queryKeys.matches(gameId) });
         },
     });
 };

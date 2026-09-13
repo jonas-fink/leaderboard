@@ -5,6 +5,7 @@ import { teamRouter } from './team.routes.ts';
 import { gameRouter } from './game.routes.ts';
 import { playerRouter } from './player.routes.ts';
 import { scoreRouter } from './score.routes.ts';
+import { matchRouter } from './match.routes.ts';
 import { leaderboardRouter } from './leaderboard.routes.ts';
 import { boardRouter } from './board.routes.ts';
 import { authRouter } from './auth.routes.ts';
@@ -30,6 +31,7 @@ apiRouter.use('/teams', teamRouter);
 apiRouter.use('/games', gameRouter);
 apiRouter.use('/players', playerRouter);
 apiRouter.use('/scores', scoreRouter);
+apiRouter.use('/matches', matchRouter);
 apiRouter.use('/leaderboard', leaderboardRouter);
 
 export {
@@ -38,6 +40,7 @@ export {
     gameRouter,
     playerRouter,
     scoreRouter,
+    matchRouter,
     leaderboardRouter,
     boardRouter,
     authRouter,

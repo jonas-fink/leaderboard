@@ -19,6 +19,7 @@ const STATUS = {
 const GamePanel = ({ game, standings }: GamePanelProps) => {
     const status = STATUS[game.status];
     const byId = new Map(standings.map((entry) => [entry.entrantId, entry]));
+    const isVersus = game.game.scoring === 'versus';
     const ascending = game.game.primaryMetric.sortOrder === 'ASC';
 
     return (
@@ -47,54 +48,109 @@ const GamePanel = ({ game, standings }: GamePanelProps) => {
             </div>
 
             <div className="flex grow flex-col justify-center gap-10 px-16 py-12">
-                {game.entries.slice(0, 3).map((entry) => {
-                    const who = byId.get(entry.entrantId);
-                    return (
-                        <div
-                            key={entry.entrantId}
-                            className="flex items-center gap-12"
-                        >
+                {isVersus &&
+                    game.entries.slice(0, 3).map((entry) => {
+                        const who = byId.get(entry.entrantId);
+                        const record = entry.record;
+                        // Die Tordifferenz ist kein API-Feld — der Client
+                        // rechnet sie, wie architecture.md es festlegt.
+                        const diff = record
+                            ? record.goalsFor - record.goalsAgainst
+                            : 0;
+                        return (
                             <div
-                                className={`w-24 text-center font-display ${entry.rank === 1 ? 'text-gold' : 'text-ink-mute'}`}
-                                style={{ fontSize: 'calc(var(--u) * 17)' }}
+                                key={entry.entrantId}
+                                className="flex items-center gap-10"
                             >
-                                {entry.rank}
+                                <div
+                                    className={`w-24 text-center font-display ${entry.rank === 1 ? 'text-gold' : 'text-ink-mute'}`}
+                                    style={{ fontSize: 'calc(var(--u) * 17)' }}
+                                >
+                                    {entry.rank}
+                                </div>
+                                <div
+                                    className="min-w-0 grow truncate font-semibold uppercase tracking-[0.04em] text-ink"
+                                    style={{ fontSize: 'calc(var(--u) * 17)' }}
+                                >
+                                    {who?.name ?? '—'}
+                                </div>
+                                <div
+                                    className="shrink-0 font-semibold uppercase tracking-[0.1em] text-ink-mute"
+                                    style={{ fontSize: 'calc(var(--u) * 12)' }}
+                                >
+                                    {record?.played ?? 0} Sp
+                                </div>
+                                <div
+                                    className="w-56 shrink-0 text-right font-display text-ink"
+                                    style={{ fontSize: 'calc(var(--u) * 17)' }}
+                                >
+                                    {entry.value} Pkt
+                                </div>
+                                <div
+                                    className={`w-40 shrink-0 text-right font-display ${
+                                        diff > 0
+                                            ? 'text-green'
+                                            : diff < 0
+                                              ? 'text-orange'
+                                              : 'text-ink-mute'
+                                    }`}
+                                    style={{ fontSize: 'calc(var(--u) * 15)' }}
+                                >
+                                    {diff > 0 ? `+${diff}` : diff}
+                                </div>
                             </div>
-                            <PixelSprite
-                                imageUrl={who?.imageUrl}
-                                seed={who?.avatarSeed ?? entry.entrantId}
-                                size={32}
-                                frame={
-                                    entry.rank === 1
-                                        ? 'border-gold'
-                                        : 'border-line-strong'
-                                }
-                            />
+                        );
+                    })}
+
+                {!isVersus &&
+                    game.entries.slice(0, 3).map((entry) => {
+                        const who = byId.get(entry.entrantId);
+                        return (
                             <div
-                                className="min-w-0 grow truncate font-semibold uppercase tracking-[0.04em] text-ink"
-                                style={{ fontSize: 'calc(var(--u) * 17)' }}
+                                key={entry.entrantId}
+                                className="flex items-center gap-12"
                             >
-                                {who?.name ?? '—'}
+                                <div
+                                    className={`w-24 text-center font-display ${entry.rank === 1 ? 'text-gold' : 'text-ink-mute'}`}
+                                    style={{ fontSize: 'calc(var(--u) * 17)' }}
+                                >
+                                    {entry.rank}
+                                </div>
+                                <PixelSprite
+                                    imageUrl={who?.imageUrl}
+                                    seed={who?.avatarSeed ?? entry.entrantId}
+                                    size={32}
+                                    frame={
+                                        entry.rank === 1
+                                            ? 'border-gold'
+                                            : 'border-line-strong'
+                                    }
+                                />
+                                <div
+                                    className="min-w-0 grow truncate font-semibold uppercase tracking-[0.04em] text-ink"
+                                    style={{ fontSize: 'calc(var(--u) * 17)' }}
+                                >
+                                    {who?.name ?? '—'}
+                                </div>
+                                <div
+                                    className="shrink-0 font-display text-ink"
+                                    style={{ fontSize: 'calc(var(--u) * 17)' }}
+                                >
+                                    {formatMetricValue(
+                                        entry.value,
+                                        game.game.primaryMetric,
+                                    )}
+                                </div>
                             </div>
-                            <div
-                                className="shrink-0 font-display text-ink"
-                                style={{ fontSize: 'calc(var(--u) * 17)' }}
-                            >
-                                {formatMetricValue(
-                                    entry.value,
-                                    game.game.primaryMetric,
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
 
                 {game.entries.length === 0 && (
                     <div
                         className="text-center font-semibold uppercase tracking-[0.14em] text-ink-mute"
                         style={{ fontSize: 'calc(var(--u) * 13)' }}
                     >
-                        Noch keine Wertung
+                        {isVersus ? 'Noch kein Spiel erfasst' : 'Noch keine Wertung'}
                     </div>
                 )}
             </div>
@@ -103,8 +159,9 @@ const GamePanel = ({ game, standings }: GamePanelProps) => {
                 className="border-t-2 border-line px-16 py-10 font-semibold uppercase tracking-[0.14em] text-ink-mute"
                 style={{ fontSize: 'calc(var(--u) * 13)' }}
             >
-                {game.entries.length} gewertet ·{' '}
-                {ascending ? 'kleiner ist besser' : 'größer ist besser'}
+                {isVersus
+                    ? `${game.entries.length} in der Tabelle`
+                    : `${game.entries.length} gewertet · ${ascending ? 'kleiner ist besser' : 'größer ist besser'}`}
             </div>
         </div>
     );
