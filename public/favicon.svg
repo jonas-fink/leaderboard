@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges">
+    <title>Control</title>
+    <!--
+        Im Stil der Team-Sprites (PROJEKT.md §8, src/lib/avatar.ts): harte
+        Zellkanten, keine Rundung, Farben aus den Tokens in src/index.css.
+
+        8×8 statt der 5×5 des Sprites, weil der Strich sonst nur eine Zelle
+        breit wäre — im 16-Pixel-Tab sind das drei Pixel, und die verschwimmen.
+        Hier ist jede Zelle 2 Pixel, der Strich also 4, und außen bleibt eine
+        Zelle Luft, damit das C nicht am Rand klebt.
+
+        Gezeichnet statt aus `pixelSprite('control')` erzeugt: der Hash liefert
+        ein gespiegeltes Muster, das auf Tab-Größe wie Rauschen aussieht.
+    -->
+    <rect width="8" height="8" fill="#0b0620" />
+
+    <!-- C mit abgeschrägten Ecken — der 16-Bit-Schnitt aus §10. Oberer Arm
+         und Rücken im Magenta des CONTROL-Schriftzugs, der untere Arm im
+         Cyan der Live-Anzeige: die beiden Akzentfarben der Palette in einer
+         Form, ohne dass eine davon die Öffnung des C zusetzt. -->
+    <g fill="#ff3fa4">
+        <rect x="2" y="1" width="4" height="1" />
+        <rect x="1" y="2" width="6" height="1" />
+        <rect x="1" y="3" width="2" height="2" />
+    </g>
+    <g fill="#21e6d8">
+        <rect x="1" y="5" width="6" height="1" />
+        <rect x="2" y="6" width="4" height="1" />
+    </g>
+</svg>
