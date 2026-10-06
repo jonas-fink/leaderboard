@@ -96,7 +96,7 @@ const Scoring = () => {
     }
 
     return (
-        <div className="grid gap-6 lg:grid-cols-[640px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[640px_minmax(0,1fr)]">
             <section className="flex flex-col border-2 border-line bg-surface">
                 <h2 className="border-b-2 border-line px-5 py-3.5 font-display text-[15px] tracking-[0.12em] text-ink">
                     ERGEBNIS ERFASSEN

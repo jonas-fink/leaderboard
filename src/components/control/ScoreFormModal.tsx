@@ -205,7 +205,7 @@ export const ScoreFormModal = ({
                 )}
                 <FormError error={submitScore.error ?? submitTeamScore.error} />
 
-                <div className="flex justify-end gap-2 pt-1">
+                <div className="flex flex-wrap justify-end gap-2 pt-1">
                     <button
                         type="button"
                         onClick={onClose}

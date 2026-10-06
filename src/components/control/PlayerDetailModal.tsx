@@ -138,7 +138,7 @@ export const PlayerDetailModal = ({
                     </ul>
                 </section>
 
-                <div className="flex justify-between gap-2 border-t-2 border-line pt-4">
+                <div className="flex flex-wrap justify-between gap-2 border-t-2 border-line pt-4">
                     <button
                         type="button"
                         onClick={handleDelete}
@@ -155,7 +155,7 @@ export const PlayerDetailModal = ({
                               ? 'Wirklich löschen? Alle Scores gehen mit.'
                               : 'Löschen'}
                     </button>
-                    <div className="flex gap-2">
+                    <div className="ml-auto flex gap-2">
                         <button
                             type="button"
                             onClick={onClose}

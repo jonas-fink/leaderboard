@@ -19,7 +19,7 @@ const GameDetail = () => {
     const [scoreOpen, setScoreOpen] = useState(false);
 
     return (
-        <section className="p-4 md:p-0">
+        <section>
             <Link
                 to="/control"
                 className="mb-4 inline-block text-sm font-semibold text-ink-mute transition-colors hover:text-cyan"

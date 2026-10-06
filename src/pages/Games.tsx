@@ -34,7 +34,7 @@ const Games = () => {
     }
 
     return (
-        <section className="p-4 md:p-0">
+        <section>
             <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-ink">Games</h1>

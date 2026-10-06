@@ -12,7 +12,7 @@ const Players = () => {
     const [editing, setEditing] = useState<Player | undefined | null>(null);
 
     return (
-        <section className="p-4 md:p-0">
+        <section>
             <header className="mb-6">
                 <h1 className="text-2xl font-bold text-ink">Spieler</h1>
                 <p className="text-sm text-ink-mute">

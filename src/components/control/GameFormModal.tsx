@@ -238,7 +238,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                     />
                 </Field>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                     <Field
                         label="Turnier"
                         error={errors.tournamentId}
@@ -332,7 +332,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                         </select>
                     </Field>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <Field
                             label="Metrik"
                             error={errors['primaryMetric.label']}
@@ -369,7 +369,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                         </Field>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <Field
                             label="Besser ist"
                             error={errors['primaryMetric.sortOrder']}
@@ -414,7 +414,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                         </Field>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <Field
                             label="Punktetabelle"
                             error={errors.pointsTable}
@@ -480,7 +480,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
 
                 <FormError error={submitError} />
 
-                <div className="flex justify-end gap-2 pt-1">
+                <div className="flex flex-wrap justify-end gap-2 pt-1">
                     <button
                         type="button"
                         onClick={onClose}
