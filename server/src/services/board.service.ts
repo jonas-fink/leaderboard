@@ -124,8 +124,12 @@ export const buildBoardState = async (
             game.scoring === 'metric' &&
             game.teamScoring === 'players'
         ) {
+            // Nur wer (noch) im Kader steht — ein Ausgetragener belegte sonst
+            // einen Platz und drückte alle anderen eine Punktstufe tiefer.
             const ranked = rankScores(
-                buckets.get(game.id) ?? [],
+                (buckets.get(game.id) ?? []).filter((score) =>
+                    teamOf.has(score.entrantId),
+                ),
                 game.primaryMetric.sortOrder,
             );
             const points = placementPoints(

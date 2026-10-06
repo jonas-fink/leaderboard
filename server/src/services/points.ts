@@ -70,7 +70,7 @@ export const teamPointsFromPlayers = (
     }
 
     const sorted = [...sums].sort((a, b) => b[1] - a[1]);
-    return sorted.map(([entrantId, points], i) => {
+    return sorted.map(([entrantId, points]) => {
         const first = sorted.findIndex(([, p]) => p === points);
         return { entrantId, rank: first + 1, value: points, points };
     });

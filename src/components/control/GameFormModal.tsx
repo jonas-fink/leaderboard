@@ -254,6 +254,9 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                             onChange={(e) =>
                                 set('tournamentId')(e.target.value)
                             }
+                            // Eine bestehende Disziplin zieht nicht um — ihre
+                            // Scores tragen die Turnier-ID mit.
+                            disabled={!!game}
                         >
                             {tournaments.map((tournament) => (
                                 <option

@@ -235,10 +235,10 @@ export const CreateGameSchema = GameFields.extend({
     status: GameStatusSchema.default('upcoming'),
 }).refine(hasDescSortOrderForVersus, DESC_INVARIANT_MESSAGE);
 /** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
-export const UpdateGameSchema = GameFields.partial().refine(
-    hasDescSortOrderForVersus,
-    DESC_INVARIANT_MESSAGE,
-);
+// Ohne `tournamentId`: die Scores tragen die alte ID denormalisiert weiter.
+export const UpdateGameSchema = GameFields.omit({ tournamentId: true })
+    .partial()
+    .refine(hasDescSortOrderForVersus, DESC_INVARIANT_MESSAGE);
 /** avatarSeed leitet der Service deterministisch aus dem Namen ab. */
 export const CreatePlayerSchema = PlayerFields.omit({ avatarSeed: true });
 /** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
@@ -281,7 +281,9 @@ export type UpdateScoreInput = z.infer<typeof UpdateScoreSchema>;
 export const MatchSideSchema = z.object({
     playerId: z.string().min(1).optional(),
     teamId: z.string().min(1).optional(),
-    value: z.number().nonnegative(),
+    // Ganzzahlig wie `MatchRecordSchema` — ein 2,5 käme sonst bis in die
+    // Datenbank und ließe danach jedes `board:update` an der Tabelle scheitern.
+    value: z.number().int().nonnegative(),
 });
 
 /** Match-Felder ohne Defaults; `playedAt` hat serverseitig einen Default
@@ -655,7 +657,10 @@ export const UpdateTournamentSchema = TournamentFields.partial();
 export const CreateTeamSchema = TeamFields.omit({ avatarSeed: true }).extend({
     members: TeamFields.shape.members.default([]),
 });
-export const UpdateTeamSchema = TeamFields.partial();
+/** Ohne `tournamentId` — ein Team wechselt nicht das Turnier. */
+export const UpdateTeamSchema = TeamFields.omit({
+    tournamentId: true,
+}).partial();
 
 export type Tournament = z.infer<typeof TournamentSchema>;
 export type Team = z.infer<typeof TeamSchema>;

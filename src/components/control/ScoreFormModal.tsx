@@ -83,9 +83,12 @@ export const ScoreFormModal = ({
             return;
         }
 
+        // `Number('')` wäre 0 — ein leeres Feld würde still als 0 gewertet.
         const primaryValue = isTime
             ? parseTime(value)
-            : Number(value.replace(',', '.'));
+            : value.trim()
+              ? Number(value.replace(',', '.'))
+              : null;
 
         if (primaryValue === null || !Number.isFinite(primaryValue)) {
             setError(

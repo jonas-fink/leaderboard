@@ -1,4 +1,4 @@
-import { Player, Score } from '#models';
+import { Player, Score, Match } from '#models';
 import { asApi, notFound } from '#utils';
 import type {
     Player as PlayerType,
@@ -57,12 +57,16 @@ export const updatePlayer = async (
     return asApi<PlayerType>(doc);
 };
 
-/** Löscht den Spieler samt seiner Scores. */
+/** Löscht den Spieler samt seiner Scores und Matches — ein Match gegen einen
+ *  Gelöschten belegte sonst weiter einen Tabellenplatz und dessen Punkte. */
 export const deletePlayer = async (
     id: string,
     ownerId: string,
 ): Promise<void> => {
     const doc = await Player.findOneAndDelete({ _id: id, ownerId });
     if (!doc) throw notFound('Spieler');
-    await Score.deleteMany({ playerId: id });
+    await Promise.all([
+        Score.deleteMany({ playerId: id }),
+        Match.deleteMany({ 'sides.playerId': id }),
+    ]);
 };

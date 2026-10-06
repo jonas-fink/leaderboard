@@ -4,6 +4,7 @@ import {
     CreateTournamentSchema,
     CreateGameSchema,
     UpdateGameSchema,
+    SubmitMatchSchema,
 } from '#schemas';
 
 const turnier = (überschreiben: Record<string, unknown> = {}) => ({
@@ -112,7 +113,31 @@ test('ein Game ohne endsAt bleibt gültig — der Countdown ist freiwillig', () 
 
 test('eine eigene Punktetabelle braucht mindestens zwei Plätze', () => {
     // "531" ohne Trenner landet als [531] — das soll auffallen.
-    assert.equal(UpdateGameSchema.safeParse({ pointsTable: [531] }).success, false);
-    assert.equal(UpdateGameSchema.safeParse({ pointsTable: [5, 3] }).success, true);
-    assert.equal(UpdateGameSchema.safeParse({ pointsTable: null }).success, true);
+    assert.equal(
+        UpdateGameSchema.safeParse({ pointsTable: [531] }).success,
+        false,
+    );
+    assert.equal(
+        UpdateGameSchema.safeParse({ pointsTable: [5, 3] }).success,
+        true,
+    );
+    assert.equal(
+        UpdateGameSchema.safeParse({ pointsTable: null }).success,
+        true,
+    );
+});
+
+test('ein Match mit Kommawert wird abgelehnt', () => {
+    // Die Tabelle zählt ganze Tore — ein 2,5 ließe jedes board:update scheitern.
+    const match = (value: number) => ({
+        tournamentId: 't',
+        gameId: 'g',
+        entrantType: 'player',
+        sides: [
+            { playerId: 'a', value },
+            { playerId: 'b', value: 1 },
+        ],
+    });
+    assert.equal(SubmitMatchSchema.safeParse(match(2)).success, true);
+    assert.equal(SubmitMatchSchema.safeParse(match(2.5)).success, false);
 });
