@@ -91,3 +91,22 @@ test('die Eingabe wird nicht mutiert', () => {
     placementPoints(ranks, table, 2);
     assert.deepEqual(ranks, [1, 2, 2, 4]);
 });
+
+test('shared: jede Ranggruppe bekommt die vollen Punkte ihres Platzes', () => {
+    // Teamchallenge 4 gegen 4: Sieger je 10, Verlierer je 8.
+    assert.deepEqual(
+        placementPoints([1, 1, 1, 1, 5, 5, 5, 5], table, 1, 'shared'),
+        [10, 10, 10, 10, 8, 8, 8, 8],
+    );
+});
+
+test('shared: Gruppen jenseits einer kleinen Tabelle bekommen 0', () => {
+    assert.deepEqual(
+        placementPoints([1, 2, 2, 4, 5], [5, 3, 1], 1, 'shared'),
+        [5, 3, 3, 1, 0],
+    );
+});
+
+test('shared: Gewicht und unsortierte Eingabe', () => {
+    assert.deepEqual(placementPoints([3, 1, 3], table, 2, 'shared'), [16, 20, 16]);
+});

@@ -124,8 +124,9 @@ export const buildBoardState = async (
 
         const points = placementPoints(
             ranked.map((entry) => entry.rank),
-            tournament.pointsTable,
+            game.pointsTable ?? tournament.pointsTable,
             game.weight,
+            game.tieMode,
         );
         return {
             game,

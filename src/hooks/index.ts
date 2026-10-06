@@ -6,6 +6,7 @@ import type {
     CreatePlayerInput,
     UpdatePlayerInput,
     SubmitScoreInput,
+    SubmitTeamScoreInput,
     SubmitMatchInput,
     CreateTournamentInput,
     UpdateTournamentInput,
@@ -226,10 +227,21 @@ export const useDeletePlayer = () => {
     });
 };
 
-export const useSubmitScore = () => {
+export const useSubmitScore = () =>
+    useScoreMutation((input: SubmitScoreInput) => api.submitScore(input));
+
+/** Teamchallenge im Einzelmodus: ein Request für alle Mitglieder. */
+export const useSubmitTeamScore = () =>
+    useScoreMutation((input: SubmitTeamScoreInput) =>
+        api.submitTeamScore(input),
+    );
+
+const useScoreMutation = <I extends { tournamentId: string }, R>(
+    mutationFn: (input: I) => Promise<R>,
+) => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (input: SubmitScoreInput) => api.submitScore(input),
+        mutationFn,
         onSuccess: (_score, input) => {
             // Die Liste "Letzte Wertungen" auf /control liest aus dieser
             // Query — ohne sie stand dort bis zum nächsten Reload der alte

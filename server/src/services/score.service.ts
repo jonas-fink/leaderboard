@@ -4,6 +4,7 @@ import type {
     RawScore,
     ScoreRecord,
     SubmitScoreInput,
+    SubmitTeamScoreInput,
     UpdateScoreInput,
     MetricConfig,
 } from '#types';
@@ -109,6 +110,26 @@ export const createScore = async (
 ): Promise<RawScore> => {
     const doc = await Score.create(input);
     return toRaw(doc);
+};
+
+/**
+ * Ein Score je Kadermitglied. `insertMany` validiert alle Dokumente, bevor
+ * es schreibt — ein ungültiger Eintrag verhindert damit jeden.
+ * ponytail: keine Transaktion (läuft auch auf einer Standalone-Mongo); ein
+ * Verbindungsabbruch mitten im einen Insert bleibt das Restrisiko.
+ */
+export const createTeamScores = async (
+    { teamId: _teamId, ...input }: SubmitTeamScoreInput,
+    memberIds: string[],
+): Promise<RawScore[]> => {
+    const docs = await Score.insertMany(
+        memberIds.map((playerId) => ({
+            ...input,
+            entrantType: 'player',
+            playerId,
+        })),
+    );
+    return docs.map(toRaw);
 };
 
 export const updateScore = async (

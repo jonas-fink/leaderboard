@@ -76,3 +76,15 @@ test('eine metrische Disziplin mit ASC bleibt unberührt von der Invariante', as
     );
     await assert.doesNotReject(() => game.validate());
 });
+
+test('eine eigene Punktetabelle muss fallen', async () => {
+    const steigend = new Game(versusGame({ pointsTable: [1, 3, 5] }));
+    await assert.rejects(steigend.validate());
+    await new Game(versusGame({ pointsTable: [5, 3, 1] })).validate();
+});
+
+test('ohne eigene Tabelle (fehlend oder null) ist das Game gültig', async () => {
+    await new Game(versusGame()).validate();
+    await new Game(versusGame({ pointsTable: null })).validate();
+    assert.equal(new Game(versusGame()).tieMode, 'average');
+});

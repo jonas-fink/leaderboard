@@ -12,6 +12,11 @@
  *
  * Gerechnet wird ungerundet; gerundet wird erst in der Darstellung.
  *
+ * Ausnahme `tieMode: 'shared'` (Teamchallenges): jede Ranggruppe bekommt die
+ * vollen Punkte ihres Platzes, die nächste Gruppe den nächsten Platz — vier
+ * Sieger je 10, vier Verlierer je 8. Die Gesamtsumme hängt dann bewusst von
+ * den Gleichständen ab.
+ *
  * Die Reihenfolge der Ausgabe entspricht der Eingabe. Gruppiert wird über
  * den Rangwert, nicht über benachbarte Einträge — die Funktion ist damit
  * auch für eine unsortierte Rangliste korrekt.
@@ -20,7 +25,15 @@ export const placementPoints = (
     ranks: number[],
     pointsTable: number[],
     weight = 1,
+    tieMode: 'average' | 'shared' = 'average',
 ): number[] => {
+    if (tieMode === 'shared') {
+        const dense = [...new Set(ranks)].sort((a, b) => a - b);
+        return ranks.map(
+            (rank) => (pointsTable[dense.indexOf(rank)] ?? 0) * weight,
+        );
+    }
+
     const groupSize = new Map<number, number>();
     for (const rank of ranks) {
         groupSize.set(rank, (groupSize.get(rank) ?? 0) + 1);

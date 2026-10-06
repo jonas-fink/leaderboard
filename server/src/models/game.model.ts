@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
 import { toJSONOptions } from '#db';
+import { fallingPointsTable } from './tournament.model.ts';
 
 const metricConfigSchema = new Schema(
     {
@@ -48,6 +49,22 @@ const gameSchema = new Schema(
         secondaryMetrics: { type: [metricConfigSchema], default: undefined },
         // Gewichtungsfaktor der Disziplin — ein Finale zählt z.B. doppelt.
         weight: { type: Number, default: 1, min: 0 },
+        // Eigene Tabelle der Disziplin; ohne gilt die des Turniers.
+        pointsTable: {
+            type: [Number],
+            default: undefined,
+            // null = Tabelle per PATCH entfernt; Mongoose prüft auch null.
+            validate: {
+                ...fallingPointsTable,
+                validator: (table: number[] | null) =>
+                    table == null || fallingPointsTable.validator(table),
+            },
+        },
+        tieMode: {
+            type: String,
+            enum: ['average', 'shared'],
+            default: 'average',
+        },
         // Steuert, welche Games auf dem Board erscheinen.
         pinned: { type: Boolean, default: false },
         boardOrder: { type: Number, default: 0 },

@@ -16,6 +16,7 @@ import {
     type CreatePlayerInput,
     type UpdatePlayerInput,
     type SubmitScoreInput,
+    type SubmitTeamScoreInput,
     type SubmitMatchInput,
     type LoginInput,
     type RegisterInput,
@@ -250,6 +251,13 @@ export const fetchScores = (tournamentId: string, limit = 15) =>
 
 export const submitScore = (input: SubmitScoreInput) =>
     request('/scores', ScoreRecordSchema, { method: 'POST', ...body(input) });
+
+/** Teamchallenge: ein Score je Mitglied, alle oder keiner. */
+export const submitTeamScore = (input: SubmitTeamScoreInput) =>
+    request('/scores/team', z.array(ScoreRecordSchema), {
+        method: 'POST',
+        ...body(input),
+    });
 
 export const deleteScore = (id: string) =>
     request(`/scores/${id}`, voidSchema, { method: 'DELETE' });

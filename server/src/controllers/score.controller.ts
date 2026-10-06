@@ -1,9 +1,14 @@
 import type { RequestHandler } from 'express';
 import * as scoreService from '#services/score.service';
 import { assertOwned, assertEntrantOwned } from '#services/tournament.service';
+import { getTeam } from '#services/team.service';
 import { emitBoardUpdate } from '#realtime';
 import { httpError } from '#utils';
-import type { SubmitScoreInput, UpdateScoreInput } from '#types';
+import type {
+    SubmitScoreInput,
+    SubmitTeamScoreInput,
+    UpdateScoreInput,
+} from '#types';
 
 /** `tournamentId` ist Pflicht — ohne Turnierbezug gibt es keine sinnvolle
  *  Abgrenzung (dasselbe Muster wie `GET /api/teams`, `GET /api/games`). */
@@ -43,6 +48,26 @@ export const postScore: RequestHandler<
     const score = await scoreService.createScore(req.body);
     await emitBoardUpdate(score.tournamentId);
     res.status(201).json(score);
+};
+
+/** Teamchallenge im Einzelmodus: ein Request, ein Score je Mitglied. */
+export const postTeamScore: RequestHandler<
+    unknown,
+    unknown,
+    SubmitTeamScoreInput
+> = async (req, res) => {
+    await assertOwned(req.body.tournamentId, req.user.id);
+    const team = await getTeam(req.body.teamId);
+    // Sonst ließe sich der Kader eines fremden Turniers einschleusen.
+    if (team.tournamentId !== req.body.tournamentId) {
+        throw httpError(400, 'Das Team gehört nicht zu diesem Turnier');
+    }
+    if (team.members.length === 0) {
+        throw httpError(400, 'Das Team hat keine Mitglieder');
+    }
+    const scores = await scoreService.createTeamScores(req.body, team.members);
+    await emitBoardUpdate(req.body.tournamentId);
+    res.status(201).json(scores);
 };
 
 export const patchScore: RequestHandler<

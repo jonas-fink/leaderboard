@@ -35,6 +35,9 @@ type FormState = {
     sortOrder: string;
     formatter: string;
     unit: string;
+    // Leer = Tabelle des Turniers.
+    pointsTable: string;
+    tieMode: string;
 };
 
 const emptyForm: FormState = {
@@ -49,6 +52,8 @@ const emptyForm: FormState = {
     sortOrder: 'DESC',
     formatter: 'integer',
     unit: '',
+    pointsTable: '',
+    tieMode: 'average',
 };
 
 const toForm = (game: Game): FormState => ({
@@ -63,7 +68,15 @@ const toForm = (game: Game): FormState => ({
     sortOrder: game.primaryMetric.sortOrder,
     formatter: game.primaryMetric.formatter,
     unit: game.primaryMetric.unit ?? '',
+    pointsTable: game.pointsTable?.join(', ') ?? '',
+    tieMode: game.tieMode,
 });
+
+/** "5, 3, 1" oder "5-3-1" → [5, 3, 1]; leer → null (Tabelle des Turniers). */
+const parseTable = (value: string) => {
+    const parts = value.split(/[^0-9.]+/).filter(Boolean);
+    return parts.length ? parts.map(Number) : null;
+};
 
 interface GameFormModalProps {
     open: boolean;
@@ -82,6 +95,9 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
     // Solange keine Wahl getroffen wurde, gilt das erste Turnier: bei einem
     // einzigen laufenden Event wäre alles andere ein Klick zu viel.
     const tournamentId = form.tournamentId || tournaments[0]?.id || '';
+    const tournamentTable = tournaments
+        .find((tournament) => tournament.id === tournamentId)
+        ?.pointsTable.join(', ');
 
     const createGame = useCreateGame();
     const updateGame = useUpdateGame();
@@ -110,6 +126,8 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             weight: game?.weight ?? 1,
             boardOrder: game?.boardOrder ?? 0,
             status: game?.status ?? 'upcoming',
+            pointsTable: parseTable(form.pointsTable),
+            tieMode: form.tieMode,
             primaryMetric: {
                 label: form.metricLabel.trim(),
                 key: form.metricKey.trim() || slugify(form.metricLabel),
@@ -344,6 +362,44 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                                         {formatter}
                                     </option>
                                 ))}
+                            </select>
+                        </Field>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Field
+                            label="Punktetabelle"
+                            error={errors.pointsTable}
+                            hint="Leer = Tabelle des Turniers"
+                        >
+                            <input
+                                className={inputClass}
+                                value={form.pointsTable}
+                                onChange={(e) =>
+                                    set('pointsTable')(e.target.value)
+                                }
+                                placeholder={tournamentTable ?? '5, 3, 1'}
+                            />
+                        </Field>
+
+                        <Field
+                            label="Gleichstand"
+                            error={errors.tieMode}
+                            hint={
+                                form.tieMode === 'shared'
+                                    ? 'Alle Gleichplatzierten bekommen die vollen Punkte, die nächste Gruppe den nächsten Platz.'
+                                    : undefined
+                            }
+                        >
+                            <select
+                                className={inputClass}
+                                value={form.tieMode}
+                                onChange={(e) => set('tieMode')(e.target.value)}
+                            >
+                                <option value="average">Punkte mitteln</option>
+                                <option value="shared">
+                                    Volle Punkte (Teamchallenge)
+                                </option>
                             </select>
                         </Field>
                     </div>
