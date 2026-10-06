@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useNavigate } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { IoLogOutOutline } from 'react-icons/io5';
 import {
     selectTournament,
@@ -24,6 +25,15 @@ const Layout = () => {
     const { data: me } = useMe();
     const logout = useLogout();
     const navigate = useNavigate();
+    const { pathname } = useLocation();
+    const navRef = useRef<HTMLElement>(null);
+
+    // Auf dem Handy scrollen die Reiter seitlich — der aktive soll sichtbar sein.
+    useEffect(() => {
+        navRef.current
+            ?.querySelector('[aria-current="page"]')
+            ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }, [pathname]);
 
     const handleLogout = () =>
         logout.mutate(undefined, {
@@ -32,19 +42,24 @@ const Layout = () => {
 
     return (
         <div className="flex min-h-screen flex-col bg-bg text-ink">
-            <header className="flex h-[74px] shrink-0 items-center justify-between gap-5 border-b-2 border-line bg-surface px-6">
-                <div className="flex items-center gap-4">
-                    <span className="font-display text-lg tracking-[0.14em] text-magenta">
+            <header className="flex min-h-[74px] shrink-0 items-center justify-between gap-3 border-b-2 border-line bg-surface px-4 py-3 md:h-[74px] md:gap-5 md:px-6 md:py-0">
+                <div className="flex min-w-0 items-center gap-3 md:gap-4">
+                    <span className="hidden font-display text-lg tracking-[0.14em] text-magenta sm:inline">
                         CONTROL
                     </span>
-                    <span className="h-6 w-0.5 bg-line" aria-hidden />
+                    <span
+                        className="hidden h-6 w-0.5 bg-line sm:block"
+                        aria-hidden
+                    />
                     {tournament ? (
-                        <label className="flex items-center gap-2.5 border-2 border-line-strong bg-bg px-3.5 py-1">
+                        <label className="flex min-w-0 items-center gap-2.5 border-2 border-line-strong bg-bg px-3.5 py-1">
                             <span className="sr-only">Turnier wechseln</span>
                             <select
                                 value={tournament.id}
-                                onChange={(e) => selectTournament(e.target.value)}
-                                className="cursor-pointer bg-bg py-1 text-[15px] font-semibold text-ink outline-none"
+                                onChange={(e) =>
+                                    selectTournament(e.target.value)
+                                }
+                                className="min-w-0 cursor-pointer truncate bg-bg py-1 text-[15px] font-semibold text-ink outline-none"
                             >
                                 {tournaments.map((item) => (
                                     <option key={item.id} value={item.id}>
@@ -52,7 +67,7 @@ const Layout = () => {
                                     </option>
                                 ))}
                             </select>
-                            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-mute">
+                            <span className="hidden text-xs font-semibold uppercase tracking-[0.12em] text-ink-mute sm:inline">
                                 {tournament.mode === 'team'
                                     ? 'Teamturnier'
                                     : 'Einzelturnier'}
@@ -64,9 +79,9 @@ const Layout = () => {
                         </span>
                     )}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3">
                     {me && (
-                        <span className="text-sm text-ink-mute">
+                        <span className="hidden text-sm text-ink-mute md:inline">
                             {me.displayName || me.email}
                         </span>
                     )}
@@ -83,14 +98,17 @@ const Layout = () => {
                 </div>
             </header>
 
-            <nav className="flex h-[54px] shrink-0 items-stretch border-b-2 border-line bg-bg px-6">
+            <nav
+                ref={navRef}
+                className="flex h-[54px] shrink-0 items-stretch overflow-x-auto border-b-2 border-line bg-bg px-2 [scrollbar-width:none] md:px-6"
+            >
                 {TABS.map((tab) => (
                     <NavLink
                         key={tab.to}
                         to={tab.to}
                         end={tab.end}
                         className={({ isActive }) =>
-                            `flex items-center border-b-4 px-5.5 font-display text-[13px] tracking-[0.1em] transition-colors ${
+                            `flex shrink-0 items-center border-b-4 px-3.5 font-display text-[13px] tracking-[0.1em] transition-colors md:px-5.5 ${
                                 isActive
                                     ? 'border-magenta text-ink'
                                     : 'border-transparent text-ink-mute hover:text-ink-soft'
@@ -102,7 +120,7 @@ const Layout = () => {
                 ))}
             </nav>
 
-            <main className="min-h-0 grow p-6">
+            <main className="min-h-0 grow p-4 md:p-6">
                 <Outlet />
             </main>
         </div>

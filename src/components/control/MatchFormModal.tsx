@@ -192,7 +192,7 @@ export const MatchFormModal = ({
                 )}
                 <FormError error={createMatch.error} />
 
-                <div className="flex justify-end gap-2 pt-1">
+                <div className="flex flex-wrap justify-end gap-2 pt-1">
                     <button
                         type="button"
                         onClick={onClose}

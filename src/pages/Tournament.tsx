@@ -226,9 +226,9 @@ const Tournament = () => {
                     {tournaments.map((item) => (
                         <li
                             key={item.id}
-                            className="flex items-center gap-4 px-5 py-3"
+                            className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3"
                         >
-                            <span className="grow truncate text-ink">
+                            <span className="min-w-0 grow basis-full truncate text-ink sm:basis-0">
                                 {item.title}
                             </span>
                             <span className="text-xs uppercase tracking-[0.14em] text-ink-mute">

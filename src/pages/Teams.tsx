@@ -94,17 +94,17 @@ const Teams = () => {
                 </p>
             )}
 
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(18rem,1fr))]">
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(24rem,100%),1fr))]">
                 {teams.map((team) => (
                     <div
                         key={team.id}
-                        className="flex items-center gap-4 border-2 border-line bg-surface p-4"
+                        className="flex flex-wrap items-center gap-4 border-2 border-line bg-surface p-4 sm:flex-nowrap"
                         style={{ borderLeftColor: team.colorPrimary }}
                     >
                         {/* Der Sprite ist Board-Ware, aber hier dieselbe
                             Ableitung — sonst sähe das Team im Panel anders
                             aus als auf der Leinwand. */}
-                        <div className="[--u:1px]">
+                        <div className="shrink-0 [--u:1px]">
                             <PixelSprite
                                 imageUrl={team.bannerUrl}
                                 seed={team.avatarSeed}
@@ -112,29 +112,33 @@ const Teams = () => {
                                 frame="border-line-strong"
                             />
                         </div>
-                        <div className="min-w-0 grow">
-                            <div className="truncate font-semibold text-ink">
+                        <div className="min-w-0 grow basis-24 sm:basis-auto">
+                            <div className="font-semibold break-words text-ink">
                                 {team.name}
                             </div>
-                            <div className="text-xs uppercase tracking-[0.12em] text-ink-mute">
+                            <div className="truncate text-xs uppercase tracking-[0.12em] text-ink-mute">
                                 {team.members.length} Mitglieder
                             </div>
                         </div>
-                        <button
-                            type="button"
-                            className={ghostButtonClass}
-                            onClick={() => start(team)}
-                        >
-                            Ändern
-                        </button>
-                        <button
-                            type="button"
-                            aria-label={`${team.name} löschen`}
-                            className="cursor-pointer border-2 border-line px-2 py-1 text-ink-mute transition-colors hover:border-orange hover:text-orange"
-                            onClick={() => deleteTeam.mutate(team.id)}
-                        >
-                            ✕
-                        </button>
+                        {/* Auf dem Handy rutschen die Knöpfe in eine eigene
+                            Zeile, sobald der Name sonst zerquetscht würde. */}
+                        <div className="ml-auto flex shrink-0 items-center gap-4">
+                            <button
+                                type="button"
+                                className={ghostButtonClass}
+                                onClick={() => start(team)}
+                            >
+                                Ändern
+                            </button>
+                            <button
+                                type="button"
+                                aria-label={`${team.name} löschen`}
+                                className="cursor-pointer border-2 border-line px-2 py-1 text-ink-mute transition-colors hover:border-orange hover:text-orange"
+                                onClick={() => deleteTeam.mutate(team.id)}
+                            >
+                                ✕
+                            </button>
+                        </div>
                     </div>
                 ))}
 
