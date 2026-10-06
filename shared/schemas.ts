@@ -39,6 +39,18 @@ export const MetricConfigSchema = z.object({
     unit: z.string().max(20).optional(),
 });
 
+// Index 0 = Platz 1. Muss monoton fallen, sonst könnte ein schlechterer Rang
+// mehr Punkte einbringen als ein besserer — points.ts prüft das nicht nach.
+// Mindestens zwei Plätze: "531" ohne Trenner wäre sonst still eine einzige
+// Zahl, 531 Punkte für den Sieger.
+const PointsTableSchema = z
+    .array(z.number().nonnegative())
+    .min(2, 'Mindestens zwei Plätze angeben, z. B. 5, 3, 1')
+    .refine(
+        (table) => table.every((v, i) => i === 0 || v <= table[i - 1]!),
+        'Die Punktetabelle muss von Platz 1 an fallen',
+    );
+
 /**
  * Game-Felder ohne Defaults. Die Defaults sitzen bewusst nur im
  * Create-Schema: ein PATCH mit `.partial()` würde sie sonst mitschicken und
@@ -62,6 +74,17 @@ const GameFields = z.object({
     secondaryMetrics: z.array(MetricConfigSchema).optional(),
     // Gewichtungsfaktor der Disziplin — ein Finale zählt zum Beispiel doppelt.
     weight: z.number().positive(),
+    // Eigene Punktetabelle der Disziplin, z.B. 5-3-1 für kleine Challenges.
+    // Fehlt sie, gilt die Tabelle des Turniers. Nullable wie `endsAt`, damit
+    // ein PATCH sie wieder entfernen kann.
+    pointsTable: PointsTableSchema.nullable().optional(),
+    // 'shared': jede Ranggruppe bekommt die vollen Punkte ihres Platzes
+    // (Teamchallenges); 'average' mittelt wie beim Turnier.
+    tieMode: z.enum(['average', 'shared']),
+    // Nur im Team-Turnier: 'team' wertet ein Ergebnis je Team (das beste
+    // zählt), 'players' wertet jeden Spieler einzeln und schreibt seinem Team
+    // die Platzierungspunkte gut.
+    teamScoring: z.enum(['team', 'players']),
     // Steuert, welche Games auf dem Board erscheinen.
     pinned: z.boolean(),
     // Reihenfolge in der Board-Rotation.
@@ -152,6 +175,17 @@ export const SubmitScoreSchema = ScoreFields.refine(
     'Zu entrantType gehört genau eine ID: playerId oder teamId',
 );
 
+/**
+ * Teamchallenge im Einzelmodus (POST /api/scores/team): derselbe Wert für
+ * jedes Mitglied des Teams. Die Spieler-IDs liest der Server aus dem Kader —
+ * so landen alle Scores oder keiner.
+ */
+export const SubmitTeamScoreSchema = ScoreFields.pick({
+    tournamentId: true,
+    gameId: true,
+    primaryValue: true,
+}).extend({ teamId: z.string().min(1) });
+
 // Leaderboard-Eintrag (vollständig mit Rang & Timestamp)
 export const LeaderboardEntrySchema = ScoreFields.extend({
     id: z.string().min(1),
@@ -194,15 +228,17 @@ export const PlayerStatsSchema = z.object({
 export const CreateGameSchema = GameFields.extend({
     scoring: ScoringModeSchema.default('metric'),
     weight: z.number().positive().default(1),
+    tieMode: z.enum(['average', 'shared']).default('average'),
+    teamScoring: z.enum(['team', 'players']).default('team'),
     pinned: z.boolean().default(false),
     boardOrder: z.number().int().nonnegative().default(0),
     status: GameStatusSchema.default('upcoming'),
 }).refine(hasDescSortOrderForVersus, DESC_INVARIANT_MESSAGE);
 /** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
-export const UpdateGameSchema = GameFields.partial().refine(
-    hasDescSortOrderForVersus,
-    DESC_INVARIANT_MESSAGE,
-);
+// Ohne `tournamentId`: die Scores tragen die alte ID denormalisiert weiter.
+export const UpdateGameSchema = GameFields.omit({ tournamentId: true })
+    .partial()
+    .refine(hasDescSortOrderForVersus, DESC_INVARIANT_MESSAGE);
 /** avatarSeed leitet der Service deterministisch aus dem Namen ab. */
 export const CreatePlayerSchema = PlayerFields.omit({ avatarSeed: true });
 /** Nur die gesendeten Felder werden geändert — keine Defaults, siehe oben. */
@@ -225,6 +261,7 @@ export type MetricConfig = z.infer<typeof MetricConfigSchema>;
 export type Game = z.infer<typeof GameSchema>;
 export type Player = z.infer<typeof PlayerSchema>;
 export type SubmitScoreInput = z.infer<typeof SubmitScoreSchema>;
+export type SubmitTeamScoreInput = z.infer<typeof SubmitTeamScoreSchema>;
 export type LeaderboardEntry = z.infer<typeof LeaderboardEntrySchema>;
 export type LeaderboardChartData = z.infer<typeof LeaderboardChartDataSchema>;
 export type ScoreRecord = z.infer<typeof ScoreRecordSchema>;
@@ -244,7 +281,9 @@ export type UpdateScoreInput = z.infer<typeof UpdateScoreSchema>;
 export const MatchSideSchema = z.object({
     playerId: z.string().min(1).optional(),
     teamId: z.string().min(1).optional(),
-    value: z.number().nonnegative(),
+    // Ganzzahlig wie `MatchRecordSchema` — ein 2,5 käme sonst bis in die
+    // Datenbank und ließe danach jedes `board:update` an der Tabelle scheitern.
+    value: z.number().int().nonnegative(),
 });
 
 /** Match-Felder ohne Defaults; `playedAt` hat serverseitig einen Default
@@ -487,7 +526,9 @@ export const UserSchema = z.object({
 export const RegisterSchema = z
     .object({
         email: z.email(),
-        password: z.string().min(12, 'Passwort muss mindestens 12 Zeichen haben'),
+        password: z
+            .string()
+            .min(12, 'Passwort muss mindestens 12 Zeichen haben'),
         slug: AccountSlugSchema,
         displayName: z.string().trim().max(50).optional(),
         trap: z.string().optional(),
@@ -563,16 +604,8 @@ const TournamentFields = z.object({
     status: TournamentStatusSchema,
     startsAt: z.iso.datetime(),
     endsAt: z.iso.datetime().optional(),
-    // Index 0 = Platz 1. Muss monoton fallen, sonst könnte ein schlechterer
-    // Rang mehr Punkte einbringen als ein besserer — points.ts verlässt sich
-    // darauf und prüft es bewusst nicht noch einmal nach.
-    pointsTable: z
-        .array(z.number().nonnegative())
-        .min(1)
-        .refine(
-            (table) => table.every((v, i) => i === 0 || v <= table[i - 1]!),
-            'Die Punktetabelle muss von Platz 1 an fallen',
-        ),
+    // Standardtabelle aller Disziplinen ohne eigene.
+    pointsTable: PointsTableSchema,
     // Einziger Wert bis auf Weiteres; das Feld existiert für spätere Varianten.
     tieBreak: z.enum(['olympic']),
     bannerUrl: ImageUrlSchema.optional(),
@@ -624,7 +657,10 @@ export const UpdateTournamentSchema = TournamentFields.partial();
 export const CreateTeamSchema = TeamFields.omit({ avatarSeed: true }).extend({
     members: TeamFields.shape.members.default([]),
 });
-export const UpdateTeamSchema = TeamFields.partial();
+/** Ohne `tournamentId` — ein Team wechselt nicht das Turnier. */
+export const UpdateTeamSchema = TeamFields.omit({
+    tournamentId: true,
+}).partial();
 
 export type Tournament = z.infer<typeof TournamentSchema>;
 export type Team = z.infer<typeof TeamSchema>;

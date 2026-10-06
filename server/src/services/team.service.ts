@@ -1,4 +1,4 @@
-import { Team, Score } from '#models';
+import { Team, Score, Match } from '#models';
 import { asApi, notFound } from '#utils';
 import type {
     Team as TeamType,
@@ -47,5 +47,9 @@ export const updateTeam = async (
 export const deleteTeam = async (id: string): Promise<void> => {
     const doc = await Team.findByIdAndDelete(id);
     if (!doc) throw notFound('Team');
-    await Score.deleteMany({ teamId: id });
+    // Matches mit: sonst belegt das gelöschte Team weiter einen Tabellenplatz.
+    await Promise.all([
+        Score.deleteMany({ teamId: id }),
+        Match.deleteMany({ 'sides.teamId': id }),
+    ]);
 };

@@ -1,4 +1,4 @@
-import { Game, Score } from '#models';
+import { Game, Score, Match } from '#models';
 import { asApi, httpError, notFound } from '#utils';
 import { countMatches } from '#services/match.service';
 import type {
@@ -58,7 +58,14 @@ export const updateGame = async (
     const current = await Game.findById(id);
     if (!current) throw notFound('Game');
 
-    if (patch.scoring !== undefined && patch.scoring !== current.scoring) {
+    // Auch "je Team" ↔ "je Spieler" passt nicht zu bestehenden Scores.
+    const changesTeamScoring =
+        patch.teamScoring !== undefined &&
+        patch.teamScoring !== current.teamScoring;
+    if (
+        (patch.scoring !== undefined && patch.scoring !== current.scoring) ||
+        changesTeamScoring
+    ) {
         const hasResults =
             current.scoring === 'metric'
                 ? (await Score.countDocuments({ gameId: id })) > 0
@@ -80,6 +87,9 @@ export const updateGame = async (
 export const deleteGame = async (id: string): Promise<GameType> => {
     const doc = await Game.findByIdAndDelete(id);
     if (!doc) throw notFound('Game');
-    await Score.deleteMany({ gameId: id });
+    await Promise.all([
+        Score.deleteMany({ gameId: id }),
+        Match.deleteMany({ gameId: id }),
+    ]);
     return asApi<GameType>(doc);
 };

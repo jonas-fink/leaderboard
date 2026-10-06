@@ -84,11 +84,13 @@ const Teams = () => {
         <div className="flex flex-col gap-6">
             {tournament.mode === 'player' && (
                 // Der Modus hängt am Turnier und gilt für alle Disziplinen
-                // (§3). Ohne diesen Hinweis legt jemand Teams an, die nie in
-                // die Wertung kommen, und sucht den Fehler woanders.
+                // (§3). Ohne diesen Hinweis erwartet jemand eine Teamwertung,
+                // die es im Einzelmodus nicht gibt.
                 <p className="border-2 border-orange bg-orange/10 px-4 py-3 text-sm text-orange">
                     „{tournament.title}" läuft im Einzelmodus — gewertet werden
-                    Spieler, nicht Teams. Teams hier bleiben ohne Wirkung.
+                    Spieler, nicht Teams. Teams dienen hier als Kader für
+                    Teamchallenges: ein Score fürs Team zählt für jedes
+                    Mitglied.
                 </p>
             )}
 

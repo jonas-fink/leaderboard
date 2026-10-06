@@ -1,6 +1,17 @@
 import { Schema, model } from 'mongoose';
 import { toJSONOptions } from '#db';
 
+/**
+ * Mongoose-Hälfte des Zod-Refines; auch Game nutzt sie für seine eigene
+ * Tabelle.
+ */
+export const fallingPointsTable = {
+    validator: (table: number[]) =>
+        table.length > 0 &&
+        table.every((v, i) => i === 0 || v <= table[i - 1]!),
+    message: 'Die Punktetabelle muss von Platz 1 an fallen',
+};
+
 const tournamentSchema = new Schema(
     {
         // Besitz (specs/002-benutzerkonten): Turniere gehören einem Konto.
@@ -36,12 +47,7 @@ const tournamentSchema = new Schema(
             // Zweite Hälfte des Zod-Refines: points.ts verlässt sich darauf,
             // dass die Tabelle fällt, und prüft es bewusst nicht nach — auch
             // ein Seed-Skript darf die Annahme nicht brechen.
-            validate: {
-                validator: (table: number[]) =>
-                    table.length > 0 &&
-                    table.every((v, i) => i === 0 || v <= table[i - 1]!),
-                message: 'Die Punktetabelle muss von Platz 1 an fallen',
-            },
+            validate: fallingPointsTable,
         },
         // Einziger Wert bis auf Weiteres; das Feld existiert für spätere
         // Varianten der Gleichstandsregel.

@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { scoreController } from '#controllers';
 import { validateBody } from '#middleware';
-import { SubmitScoreSchema, UpdateScoreSchema } from '#schemas';
+import {
+    SubmitScoreSchema,
+    SubmitTeamScoreSchema,
+    UpdateScoreSchema,
+} from '#schemas';
 
 export const scoreRouter = Router();
 
@@ -10,6 +14,11 @@ scoreRouter.post(
     '/',
     validateBody(SubmitScoreSchema),
     scoreController.postScore,
+);
+scoreRouter.post(
+    '/team',
+    validateBody(SubmitTeamScoreSchema),
+    scoreController.postTeamScore,
 );
 scoreRouter.patch(
     '/:id',

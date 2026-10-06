@@ -16,6 +16,7 @@ import {
     type CreatePlayerInput,
     type UpdatePlayerInput,
     type SubmitScoreInput,
+    type SubmitTeamScoreInput,
     type SubmitMatchInput,
     type LoginInput,
     type RegisterInput,
@@ -182,6 +183,10 @@ export const createTeam = (input: CreateTeamInput) =>
 export const updateTeam = (id: string, patch: UpdateTeamInput) =>
     request(`/teams/${id}`, TeamSchema, { method: 'PATCH', ...body(patch) });
 
+/** Nimmt Teams, Disziplinen, Scores und Matches mit (Server-Kaskade). */
+export const deleteTournament = (id: string) =>
+    request(`/tournaments/${id}`, voidSchema, { method: 'DELETE' });
+
 export const deleteTeam = (id: string) =>
     request(`/teams/${id}`, voidSchema, { method: 'DELETE' });
 
@@ -250,6 +255,13 @@ export const fetchScores = (tournamentId: string, limit = 15) =>
 
 export const submitScore = (input: SubmitScoreInput) =>
     request('/scores', ScoreRecordSchema, { method: 'POST', ...body(input) });
+
+/** Teamchallenge: ein Score je Mitglied, alle oder keiner. */
+export const submitTeamScore = (input: SubmitTeamScoreInput) =>
+    request('/scores/team', z.array(ScoreRecordSchema), {
+        method: 'POST',
+        ...body(input),
+    });
 
 export const deleteScore = (id: string) =>
     request(`/scores/${id}`, voidSchema, { method: 'DELETE' });

@@ -70,19 +70,26 @@ export const initRealtime = (httpServer: HttpServer): void => {
 export const emitBoardUpdate = async (tournamentId: string): Promise<void> => {
     if (!io) return;
 
-    const next = await boardById(tournamentId);
-    const events = announce(
-        lastState.get(tournamentId),
-        next,
-        announcementPool,
-        pick,
-    );
-    lastState.set(tournamentId, next);
+    // Läuft nach dem Schreiben: ein Fehler hier darf den gespeicherten Score
+    // nicht als gescheitert melden — sonst trägt ihn jemand doppelt ein. Das
+    // Board holt sich den Stand spätestens mit dem nächsten Poll.
+    try {
+        const next = await boardById(tournamentId);
+        const events = announce(
+            lastState.get(tournamentId),
+            next,
+            announcementPool,
+            pick,
+        );
+        lastState.set(tournamentId, next);
 
-    const target = io.to(room(tournamentId));
-    target.emit('board:update', BoardStateSchema.parse(next));
-    if (events.length > 0) {
-        target.emit('event:announce', AnnouncementsSchema.parse(events));
+        const target = io.to(room(tournamentId));
+        target.emit('board:update', BoardStateSchema.parse(next));
+        if (events.length > 0) {
+            target.emit('event:announce', AnnouncementsSchema.parse(events));
+        }
+    } catch (err) {
+        console.error('board:update fehlgeschlagen', err);
     }
 };
 

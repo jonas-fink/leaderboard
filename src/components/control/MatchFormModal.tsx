@@ -63,14 +63,25 @@ export const MatchFormModal = ({
             return;
         }
         if (sideAId === sideBId) {
-            setError('Die beiden Seiten müssen unterschiedliche Teilnehmer sein.');
+            setError(
+                'Die beiden Seiten müssen unterschiedliche Teilnehmer sein.',
+            );
             return;
         }
 
+        // `Number('')` wäre 0 — ein leeres Feld würde still zum 0:0.
+        if (!valueA.trim() || !valueB.trim()) {
+            setError('Bitte für beide Seiten eine Zahl eingeben.');
+            return;
+        }
         const a = Number(valueA.replace(',', '.'));
         const b = Number(valueB.replace(',', '.'));
         if (!Number.isFinite(a) || !Number.isFinite(b)) {
             setError('Bitte für beide Seiten eine Zahl eingeben.');
+            return;
+        }
+        if (!Number.isInteger(a) || !Number.isInteger(b)) {
+            setError('Bitte ganze Zahlen eingeben.');
             return;
         }
         if (a < 0 || b < 0) {

@@ -3,6 +3,7 @@ import * as teamService from '#services/team.service';
 import { assertOwned } from '#services/tournament.service';
 import { assertQuota } from '#services/quota.service';
 import { getPlayer } from '#services/player.service';
+import { emitBoardUpdate } from '#realtime';
 import { httpError } from '#utils';
 import type { CreateTeamInput, UpdateTeamInput } from '#types';
 
@@ -36,7 +37,10 @@ export const postTeam: RequestHandler<
     await Promise.all(
         req.body.members.map((playerId) => getPlayer(playerId, req.user.id)),
     );
-    res.status(201).json(await teamService.createTeam(req.body));
+    const created = await teamService.createTeam(req.body);
+    // Im Team-Turnier steht ein neues Team sofort mit 0 Punkten auf dem Board.
+    await emitBoardUpdate(created.tournamentId);
+    res.status(201).json(created);
 };
 
 export const patchTeam: RequestHandler<
@@ -55,12 +59,16 @@ export const patchTeam: RequestHandler<
             ),
         );
     }
-    res.json(await teamService.updateTeam(req.params.id, req.body));
+    const updated = await teamService.updateTeam(req.params.id, req.body);
+    // Name, Farbe und Kader ("Punkte pro Spieler") ändern das Board sofort.
+    await emitBoardUpdate(updated.tournamentId);
+    res.json(updated);
 };
 
 export const deleteTeam: RequestHandler<{ id: string }> = async (req, res) => {
     const team = await teamService.getTeam(req.params.id);
     await assertOwned(team.tournamentId, req.user.id);
     await teamService.deleteTeam(req.params.id);
+    await emitBoardUpdate(team.tournamentId);
     res.status(204).end();
 };

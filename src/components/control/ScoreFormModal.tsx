@@ -7,7 +7,12 @@ import {
     parseTime,
     primaryButtonClass,
 } from '../../lib/form';
-import { usePlayers, useSubmitScore, useTeams } from '../../hooks';
+import {
+    usePlayers,
+    useSubmitScore,
+    useSubmitTeamScore,
+    useTeams,
+} from '../../hooks';
 import type { Game, TournamentMode } from '../../schemas';
 
 interface ScoreFormModalProps {
@@ -35,15 +40,34 @@ export const ScoreFormModal = ({
         game.tournamentId,
     );
     const submitScore = useSubmitScore();
+    const submitTeamScore = useSubmitTeamScore();
+    const pending = submitScore.isPending || submitTeamScore.isPending;
 
-    const teamMode = entrantType === 'team';
+    // "Punkte pro Spieler" im Teamturnier: gewertet werden die Mitglieder.
+    const perPlayer = entrantType === 'team' && game.teamScoring === 'players';
+    const teamMode = entrantType === 'team' && !perPlayer;
+    const scoredType = teamMode ? 'team' : 'player';
+    const nameOf = (p: (typeof players)[number]) => p.displayName || p.username;
     const entrants = teamMode
         ? teams.map((t) => ({ id: t.id, name: t.name }))
-        : players.map((p) => ({
-              id: p.id,
-              name: p.displayName || p.username,
-          }));
-    const isLoading = teamMode ? teamsLoading : playersLoading;
+        : perPlayer
+          ? teams.flatMap((t) =>
+                players
+                    .filter((p) => t.members.includes(p.id))
+                    .map((p) => ({
+                        id: p.id,
+                        name: `${nameOf(p)} (${t.name})`,
+                    })),
+            )
+          : players.map((p) => ({ id: p.id, name: nameOf(p) }));
+    const isLoading = teamsLoading || playersLoading;
+    // Im Einzelmodus dienen Teams als Kader für Teamchallenges: ein Team zu
+    // wählen trägt denselben Wert für jedes Mitglied ein.
+    const rosters =
+        entrantType === 'player'
+            ? teams.filter((t) => t.members.length > 0)
+            : [];
+    const roster = rosters.find((t) => `team:${t.id}` === entrantId);
 
     const isTime = game.primaryMetric.formatter === 'time_ms';
 
@@ -59,9 +83,12 @@ export const ScoreFormModal = ({
             return;
         }
 
+        // `Number('')` wäre 0 — ein leeres Feld würde still als 0 gewertet.
         const primaryValue = isTime
             ? parseTime(value)
-            : Number(value.replace(',', '.'));
+            : value.trim()
+              ? Number(value.replace(',', '.'))
+              : null;
 
         if (primaryValue === null || !Number.isFinite(primaryValue)) {
             setError(
@@ -77,22 +104,34 @@ export const ScoreFormModal = ({
         }
 
         setError(null);
+        const done = {
+            onSuccess: () => {
+                setValue('');
+                onClose();
+            },
+        };
+        if (roster) {
+            // Ein Request: der Server schreibt alle Mitglieder oder keins.
+            submitTeamScore.mutate(
+                {
+                    tournamentId: game.tournamentId,
+                    gameId: game.id,
+                    teamId: roster.id,
+                    primaryValue,
+                },
+                done,
+            );
+            return;
+        }
         submitScore.mutate(
             {
                 tournamentId: game.tournamentId,
                 gameId: game.id,
-                entrantType,
-                ...(teamMode
-                    ? { teamId: entrantId }
-                    : { playerId: entrantId }),
+                entrantType: scoredType,
+                ...(teamMode ? { teamId: entrantId } : { playerId: entrantId }),
                 primaryValue,
             },
-            {
-                onSuccess: () => {
-                    setValue('');
-                    onClose();
-                },
-            },
+            done,
         );
     };
 
@@ -118,6 +157,18 @@ export const ScoreFormModal = ({
                                 {entrant.name}
                             </option>
                         ))}
+                        {rosters.length > 0 && (
+                            <optgroup label="Ganzes Team (Teamchallenge)">
+                                {rosters.map((team) => (
+                                    <option
+                                        key={team.id}
+                                        value={`team:${team.id}`}
+                                    >
+                                        {team.name} ({team.members.length})
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
                     </select>
                 </Field>
 
@@ -152,7 +203,7 @@ export const ScoreFormModal = ({
                         {error}
                     </p>
                 )}
-                <FormError error={submitScore.error} />
+                <FormError error={submitScore.error ?? submitTeamScore.error} />
 
                 <div className="flex justify-end gap-2 pt-1">
                     <button
@@ -164,10 +215,10 @@ export const ScoreFormModal = ({
                     </button>
                     <button
                         type="submit"
-                        disabled={submitScore.isPending}
+                        disabled={pending}
                         className={primaryButtonClass}
                     >
-                        {submitScore.isPending ? 'Eintragen…' : 'Eintragen'}
+                        {pending ? 'Eintragen…' : 'Eintragen'}
                     </button>
                 </div>
             </form>

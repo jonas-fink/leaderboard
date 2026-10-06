@@ -63,13 +63,15 @@ const Scoring = () => {
     const ownGames = games;
     const game = ownGames.find((g) => g.id === gameId) ?? ownGames[0];
     const isVersus = game?.scoring === 'versus';
-    const teamMode = tournament?.mode === 'team';
-    const entrants = teamMode
-        ? teams.map((t) => ({ id: t.id, name: t.name }))
-        : players.map((p) => ({
-              id: p.id,
-              name: p.displayName || p.username,
-          }));
+    // Beide Listen: im Teamturnier mit "Punkte pro Spieler" tragen Scores
+    // eine playerId. Die IDs kollidieren nicht.
+    const entrants = [
+        ...teams.map((t) => ({ id: t.id, name: t.name })),
+        ...players.map((p) => ({
+            id: p.id,
+            name: p.displayName || p.username,
+        })),
+    ];
 
     const nameOfEntrant = (id: string | undefined) =>
         entrants.find((e) => e.id === id)?.name ?? 'Unbekannt';
@@ -131,8 +133,7 @@ const Scoring = () => {
                                 {isVersus
                                     ? '3 Punkte für den Sieg, 1 für das Unentschieden.'
                                     : `${game.primaryMetric.label} · ${
-                                          game.primaryMetric.sortOrder ===
-                                          'ASC'
+                                          game.primaryMetric.sortOrder === 'ASC'
                                               ? 'kleiner'
                                               : 'größer'
                                       } ist besser`}

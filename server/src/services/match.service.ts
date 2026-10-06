@@ -65,8 +65,15 @@ export const createMatch = async (
         throw httpError(400, 'Diese Disziplin wird über Einzelwerte gewertet');
     }
 
+    // Dieselben Prüfungen wie `assertScoreFits` im Score-Controller.
+    if (String(game.tournamentId) !== input.tournamentId) {
+        throw httpError(400, 'Die Disziplin gehört nicht zu diesem Turnier');
+    }
     const tournament = await Tournament.findById(input.tournamentId);
     if (!tournament) throw notFound('Turnier');
+    if (tournament.mode !== input.entrantType) {
+        throw httpError(400, 'Das Match passt nicht zum Modus des Turniers');
+    }
 
     const doc = await Match.create(input);
     return toApi(doc);

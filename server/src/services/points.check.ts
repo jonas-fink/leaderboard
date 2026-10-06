@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { placementPoints } from '#services/points';
+import { placementPoints, teamPointsFromPlayers } from '#services/points';
 
 // Bestätigte Standardtabelle aus PROJEKT.md §3; die Funktion behandelt sie
 // als Parameter, damit ein Turnier eine eigene mitbringen kann.
@@ -90,4 +90,72 @@ test('die Eingabe wird nicht mutiert', () => {
     const ranks = [1, 2, 2, 4];
     placementPoints(ranks, table, 2);
     assert.deepEqual(ranks, [1, 2, 2, 4]);
+});
+
+test('shared: jede Ranggruppe bekommt die vollen Punkte ihres Platzes', () => {
+    // Teamchallenge 4 gegen 4: Sieger je 10, Verlierer je 8.
+    assert.deepEqual(
+        placementPoints([1, 1, 1, 1, 5, 5, 5, 5], table, 1, 'shared'),
+        [10, 10, 10, 10, 8, 8, 8, 8],
+    );
+});
+
+test('shared: Gruppen jenseits einer kleinen Tabelle bekommen 0', () => {
+    assert.deepEqual(
+        placementPoints([1, 2, 2, 4, 5], [5, 3, 1], 1, 'shared'),
+        [5, 3, 3, 1, 0],
+    );
+});
+
+test('shared: Gewicht und unsortierte Eingabe', () => {
+    assert.deepEqual(placementPoints([3, 1, 3], table, 2, 'shared'), [16, 20, 16]);
+});
+
+test('teamPointsFromPlayers summiert die Punkte der Mitglieder je Team', () => {
+    const teamOf = new Map([
+        ['anna', 'rot'],
+        ['ben', 'rot'],
+        ['cem', 'blau'],
+        ['dora', 'blau'],
+    ]);
+    // Platz 1, 2, 3, 4 auf der Standardtabelle: rot 10 + 6, blau 8 + 5.
+    assert.deepEqual(
+        teamPointsFromPlayers(
+            [
+                { entrantId: 'anna', points: 10 },
+                { entrantId: 'cem', points: 8 },
+                { entrantId: 'ben', points: 6 },
+                { entrantId: 'dora', points: 5 },
+            ],
+            teamOf,
+        ),
+        [
+            { entrantId: 'rot', rank: 1, value: 16, points: 16 },
+            { entrantId: 'blau', rank: 2, value: 13, points: 13 },
+        ],
+    );
+});
+
+test('teamPointsFromPlayers: gleiche Summe teilt den Rang, Spieler ohne Team fallen raus', () => {
+    const teamOf = new Map([
+        ['anna', 'rot'],
+        ['cem', 'blau'],
+        ['eva', 'gelb'],
+    ]);
+    assert.deepEqual(
+        teamPointsFromPlayers(
+            [
+                { entrantId: 'anna', points: 8 },
+                { entrantId: 'cem', points: 8 },
+                { entrantId: 'gast', points: 10 },
+                { entrantId: 'eva', points: 5 },
+            ],
+            teamOf,
+        ),
+        [
+            { entrantId: 'rot', rank: 1, value: 8, points: 8 },
+            { entrantId: 'blau', rank: 1, value: 8, points: 8 },
+            { entrantId: 'gelb', rank: 3, value: 5, points: 5 },
+        ],
+    );
 });

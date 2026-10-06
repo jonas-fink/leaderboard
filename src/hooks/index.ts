@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+    useQuery,
+    useQueries,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
 import * as api from '../lib/api';
 import type {
     CreateGameInput,
@@ -6,6 +11,7 @@ import type {
     CreatePlayerInput,
     UpdatePlayerInput,
     SubmitScoreInput,
+    SubmitTeamScoreInput,
     SubmitMatchInput,
     CreateTournamentInput,
     UpdateTournamentInput,
@@ -91,6 +97,20 @@ export const useGames = (tournamentId: string | undefined) =>
         enabled: Boolean(tournamentId),
     });
 
+/**
+ * Alle Games mehrerer Turniere, z.B. als Vorlagen für ein neues. Teilt sich
+ * den Cache mit `useGames`.
+ * ponytail: ein Request je Turnier; ein Sammel-Endpunkt erst bei vielen.
+ */
+export const useGamesOf = (tournamentIds: string[]) =>
+    useQueries({
+        queries: tournamentIds.map((id) => ({
+            queryKey: queryKeys.games(id),
+            queryFn: () => api.fetchGames(id),
+        })),
+        combine: (results) => results.flatMap((r) => r.data ?? []),
+    });
+
 export const usePlayers = () =>
     useQuery({ queryKey: queryKeys.players, queryFn: api.fetchPlayers });
 
@@ -154,7 +174,9 @@ export const useCreateGame = () => {
     return useMutation({
         mutationFn: (input: CreateGameInput) => api.createGame(input),
         onSuccess: (game) => {
-            qc.invalidateQueries({ queryKey: queryKeys.games(game.tournamentId) });
+            qc.invalidateQueries({
+                queryKey: queryKeys.games(game.tournamentId),
+            });
         },
     });
 };
@@ -165,7 +187,9 @@ export const useUpdateGame = () => {
         mutationFn: ({ id, patch }: { id: string; patch: UpdateGameInput }) =>
             api.updateGame(id, patch),
         onSuccess: (game) => {
-            qc.invalidateQueries({ queryKey: queryKeys.games(game.tournamentId) });
+            qc.invalidateQueries({
+                queryKey: queryKeys.games(game.tournamentId),
+            });
             // pinned/Metrik-Änderungen verändern das Board.
             qc.invalidateQueries({
                 queryKey: queryKeys.leaderboards(game.tournamentId),
@@ -226,10 +250,21 @@ export const useDeletePlayer = () => {
     });
 };
 
-export const useSubmitScore = () => {
+export const useSubmitScore = () =>
+    useScoreMutation((input: SubmitScoreInput) => api.submitScore(input));
+
+/** Teamchallenge im Einzelmodus: ein Request für alle Mitglieder. */
+export const useSubmitTeamScore = () =>
+    useScoreMutation((input: SubmitTeamScoreInput) =>
+        api.submitTeamScore(input),
+    );
+
+const useScoreMutation = <I extends { tournamentId: string }, R>(
+    mutationFn: (input: I) => Promise<R>,
+) => {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (input: SubmitScoreInput) => api.submitScore(input),
+        mutationFn,
         onSuccess: (_score, input) => {
             // Die Liste "Letzte Wertungen" auf /control liest aus dieser
             // Query — ohne sie stand dort bis zum nächsten Reload der alte
@@ -255,6 +290,15 @@ export const useCreateTournament = () => {
     return useMutation({
         mutationFn: (input: CreateTournamentInput) =>
             api.createTournament(input),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: queryKeys.tournaments }),
+    });
+};
+
+export const useDeleteTournament = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => api.deleteTournament(id),
         onSuccess: () =>
             qc.invalidateQueries({ queryKey: queryKeys.tournaments }),
     });

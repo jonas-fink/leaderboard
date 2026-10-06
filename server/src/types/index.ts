@@ -24,6 +24,7 @@ export type {
     SortOrder,
     ScoringMode,
     SubmitScoreInput,
+    SubmitTeamScoreInput,
     LeaderboardEntry,
     LeaderboardChartData,
     ScoreRecord,

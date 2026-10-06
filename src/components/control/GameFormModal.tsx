@@ -5,10 +5,17 @@ import { Field, FormError } from '../form';
 import {
     fieldErrors,
     ghostButtonClass,
+    parseTable,
     inputClass,
     primaryButtonClass,
 } from '../../lib/form';
-import { useCreateGame, useUpdateGame, useTournaments } from '../../hooks';
+import {
+    useCreateGame,
+    useGamesOf,
+    useUpdateGame,
+    useTournaments,
+} from '../../hooks';
+import { useTournamentContext } from '../../hooks/useTournamentContext';
 import { ImageField } from './ImageField';
 import { CreateGameSchema, type Game } from '../../schemas';
 
@@ -35,6 +42,10 @@ type FormState = {
     sortOrder: string;
     formatter: string;
     unit: string;
+    // Leer = Tabelle des Turniers.
+    pointsTable: string;
+    tieMode: string;
+    teamScoring: string;
 };
 
 const emptyForm: FormState = {
@@ -49,6 +60,9 @@ const emptyForm: FormState = {
     sortOrder: 'DESC',
     formatter: 'integer',
     unit: '',
+    pointsTable: '',
+    tieMode: 'average',
+    teamScoring: 'team',
 };
 
 const toForm = (game: Game): FormState => ({
@@ -63,6 +77,9 @@ const toForm = (game: Game): FormState => ({
     sortOrder: game.primaryMetric.sortOrder,
     formatter: game.primaryMetric.formatter,
     unit: game.primaryMetric.unit ?? '',
+    pointsTable: game.pointsTable?.join(', ') ?? '',
+    tieMode: game.tieMode,
+    teamScoring: game.teamScoring,
 });
 
 interface GameFormModalProps {
@@ -79,9 +96,32 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const { data: tournaments = [] } = useTournaments();
-    // Solange keine Wahl getroffen wurde, gilt das erste Turnier: bei einem
-    // einzigen laufenden Event wäre alles andere ein Klick zu viel.
-    const tournamentId = form.tournamentId || tournaments[0]?.id || '';
+    const { tournament: active } = useTournamentContext();
+    // Solange keine Wahl getroffen wurde, gilt das Turnier aus der Kopfzeile.
+    const tournamentId =
+        form.tournamentId || active?.id || tournaments[0]?.id || '';
+
+    // Vorlagen: Disziplinen aus allen anderen Turnieren, je Titel nur die
+    // neueste (Turniere kommen nach Start absteigend).
+    const templates = useGamesOf(
+        game
+            ? []
+            : tournaments.filter((t) => t.id !== tournamentId).map((t) => t.id),
+    ).filter(
+        (item, i, all) => all.findIndex((x) => x.title === item.title) === i,
+    );
+    const applyTemplate = (id: string) => {
+        const template = templates.find((item) => item.id === id);
+        // Das Zielturnier bleibt, alles andere kommt aus der Vorlage.
+        setForm({
+            ...(template ? toForm(template) : emptyForm),
+            tournamentId,
+        });
+    };
+    const target = tournaments.find(
+        (tournament) => tournament.id === tournamentId,
+    );
+    const tournamentTable = target?.pointsTable.join(', ');
 
     const createGame = useCreateGame();
     const updateGame = useUpdateGame();
@@ -110,6 +150,9 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             weight: game?.weight ?? 1,
             boardOrder: game?.boardOrder ?? 0,
             status: game?.status ?? 'upcoming',
+            pointsTable: parseTable(form.pointsTable),
+            tieMode: form.tieMode,
+            teamScoring: form.teamScoring,
             primaryMetric: {
                 label: form.metricLabel.trim(),
                 key: form.metricKey.trim() || slugify(form.metricLabel),
@@ -141,6 +184,26 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             title={game ? 'Game bearbeiten' : 'Neues Game'}
         >
             <form onSubmit={handleSubmit} className="space-y-4">
+                {templates.length > 0 && (
+                    <Field
+                        label="Vorlage"
+                        hint="Übernimmt alle Felder einer Disziplin aus einem anderen Turnier"
+                    >
+                        <select
+                            className={inputClass}
+                            defaultValue=""
+                            onChange={(e) => applyTemplate(e.target.value)}
+                        >
+                            <option value="">Leer beginnen</option>
+                            {templates.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.title}
+                                </option>
+                            ))}
+                        </select>
+                    </Field>
+                )}
+
                 <Field label="Titel" error={errors.title}>
                     <input
                         className={inputClass}
@@ -191,6 +254,9 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                             onChange={(e) =>
                                 set('tournamentId')(e.target.value)
                             }
+                            // Eine bestehende Disziplin zieht nicht um — ihre
+                            // Scores tragen die Turnier-ID mit.
+                            disabled={!!game}
                         >
                             {tournaments.map((tournament) => (
                                 <option
@@ -347,6 +413,69 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                             </select>
                         </Field>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Field
+                            label="Punktetabelle"
+                            error={errors.pointsTable}
+                            hint="Leer = Tabelle des Turniers"
+                        >
+                            <input
+                                className={inputClass}
+                                value={form.pointsTable}
+                                onChange={(e) =>
+                                    set('pointsTable')(e.target.value)
+                                }
+                                placeholder={tournamentTable ?? '5, 3, 1'}
+                            />
+                        </Field>
+
+                        <Field
+                            label="Gleichstand"
+                            error={errors.tieMode}
+                            hint={
+                                form.tieMode === 'shared'
+                                    ? 'Alle Gleichplatzierten bekommen die vollen Punkte, die nächste Gruppe den nächsten Platz.'
+                                    : undefined
+                            }
+                        >
+                            <select
+                                className={inputClass}
+                                value={form.tieMode}
+                                onChange={(e) => set('tieMode')(e.target.value)}
+                            >
+                                <option value="average">Punkte mitteln</option>
+                                <option value="shared">
+                                    Volle Punkte (Teamchallenge)
+                                </option>
+                            </select>
+                        </Field>
+                    </div>
+
+                    {target?.mode === 'team' && !isVersus && (
+                        <Field
+                            label="Wertung im Teamturnier"
+                            error={errors.teamScoring}
+                            hint={
+                                form.teamScoring === 'players'
+                                    ? 'Jeder Spieler wird einzeln platziert, sein Team bekommt die Summe der Punkte seiner Mitglieder.'
+                                    : 'Ein Ergebnis je Team, das beste zählt.'
+                            }
+                        >
+                            <select
+                                className={inputClass}
+                                value={form.teamScoring}
+                                onChange={(e) =>
+                                    set('teamScoring')(e.target.value)
+                                }
+                            >
+                                <option value="team">Ergebnis je Team</option>
+                                <option value="players">
+                                    Punkte pro Spieler
+                                </option>
+                            </select>
+                        </Field>
+                    )}
                 </fieldset>
 
                 <FormError error={submitError} />
