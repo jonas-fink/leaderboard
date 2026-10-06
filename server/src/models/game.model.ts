@@ -65,6 +65,12 @@ const gameSchema = new Schema(
             enum: ['average', 'shared'],
             default: 'average',
         },
+        // Nur im Team-Turnier: Ergebnis je Team oder je Spieler.
+        teamScoring: {
+            type: String,
+            enum: ['team', 'players'],
+            default: 'team',
+        },
         // Steuert, welche Games auf dem Board erscheinen.
         pinned: { type: Boolean, default: false },
         boardOrder: { type: Number, default: 0 },

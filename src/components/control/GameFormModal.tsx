@@ -45,6 +45,7 @@ type FormState = {
     // Leer = Tabelle des Turniers.
     pointsTable: string;
     tieMode: string;
+    teamScoring: string;
 };
 
 const emptyForm: FormState = {
@@ -61,6 +62,7 @@ const emptyForm: FormState = {
     unit: '',
     pointsTable: '',
     tieMode: 'average',
+    teamScoring: 'team',
 };
 
 const toForm = (game: Game): FormState => ({
@@ -77,6 +79,7 @@ const toForm = (game: Game): FormState => ({
     unit: game.primaryMetric.unit ?? '',
     pointsTable: game.pointsTable?.join(', ') ?? '',
     tieMode: game.tieMode,
+    teamScoring: game.teamScoring,
 });
 
 interface GameFormModalProps {
@@ -115,9 +118,10 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             tournamentId,
         });
     };
-    const tournamentTable = tournaments
-        .find((tournament) => tournament.id === tournamentId)
-        ?.pointsTable.join(', ');
+    const target = tournaments.find(
+        (tournament) => tournament.id === tournamentId,
+    );
+    const tournamentTable = target?.pointsTable.join(', ');
 
     const createGame = useCreateGame();
     const updateGame = useUpdateGame();
@@ -148,6 +152,7 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             status: game?.status ?? 'upcoming',
             pointsTable: parseTable(form.pointsTable),
             tieMode: form.tieMode,
+            teamScoring: form.teamScoring,
             primaryMetric: {
                 label: form.metricLabel.trim(),
                 key: form.metricKey.trim() || slugify(form.metricLabel),
@@ -443,6 +448,31 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
                             </select>
                         </Field>
                     </div>
+
+                    {target?.mode === 'team' && !isVersus && (
+                        <Field
+                            label="Wertung im Teamturnier"
+                            error={errors.teamScoring}
+                            hint={
+                                form.teamScoring === 'players'
+                                    ? 'Jeder Spieler wird einzeln platziert, sein Team bekommt die Summe der Punkte seiner Mitglieder.'
+                                    : 'Ein Ergebnis je Team, das beste zählt.'
+                            }
+                        >
+                            <select
+                                className={inputClass}
+                                value={form.teamScoring}
+                                onChange={(e) =>
+                                    set('teamScoring')(e.target.value)
+                                }
+                            >
+                                <option value="team">Ergebnis je Team</option>
+                                <option value="players">
+                                    Punkte pro Spieler
+                                </option>
+                            </select>
+                        </Field>
+                    )}
                 </fieldset>
 
                 <FormError error={submitError} />

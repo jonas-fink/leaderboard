@@ -81,6 +81,10 @@ const GameFields = z.object({
     // 'shared': jede Ranggruppe bekommt die vollen Punkte ihres Platzes
     // (Teamchallenges); 'average' mittelt wie beim Turnier.
     tieMode: z.enum(['average', 'shared']),
+    // Nur im Team-Turnier: 'team' wertet ein Ergebnis je Team (das beste
+    // zählt), 'players' wertet jeden Spieler einzeln und schreibt seinem Team
+    // die Platzierungspunkte gut.
+    teamScoring: z.enum(['team', 'players']),
     // Steuert, welche Games auf dem Board erscheinen.
     pinned: z.boolean(),
     // Reihenfolge in der Board-Rotation.
@@ -225,6 +229,7 @@ export const CreateGameSchema = GameFields.extend({
     scoring: ScoringModeSchema.default('metric'),
     weight: z.number().positive().default(1),
     tieMode: z.enum(['average', 'shared']).default('average'),
+    teamScoring: z.enum(['team', 'players']).default('team'),
     pinned: z.boolean().default(false),
     boardOrder: z.number().int().nonnegative().default(0),
     status: GameStatusSchema.default('upcoming'),

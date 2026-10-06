@@ -9,7 +9,7 @@ import { scoresByGame } from '#services/score.service';
 import { matchesByGame } from '#services/match.service';
 import { rankScores } from '#services/rank';
 import { buildTable } from '#services/table';
-import { placementPoints } from '#services/points';
+import { placementPoints, teamPointsFromPlayers } from '#services/points';
 import { computeStandings } from '#services/standings';
 import { User } from '#models';
 import { notFound } from '#utils';
@@ -105,12 +105,57 @@ export const buildBoardState = async (
     const versusGameIds = games
         .filter((game) => game.scoring === 'versus')
         .map((game) => game.id);
-    const [buckets, matchBuckets] = await Promise.all([
+    const [buckets, matchBuckets, teams] = await Promise.all([
         scoresByGame(metricGameIds),
         matchesByGame(versusGameIds),
+        tournament.mode === 'team' ? listTeams(tournament.id) : [],
     ]);
+    // Spieler → Team für "Punkte pro Spieler". `String(...)`, weil `members`
+    // in-process noch ObjectIds trägt.
+    const teamOf = new Map(
+        teams.flatMap((team) =>
+            team.members.map((member) => [String(member), team.id] as const),
+        ),
+    );
 
     const results = games.map((game) => {
+        if (
+            tournament.mode === 'team' &&
+            game.scoring === 'metric' &&
+            game.teamScoring === 'players'
+        ) {
+            const ranked = rankScores(
+                buckets.get(game.id) ?? [],
+                game.primaryMetric.sortOrder,
+            );
+            const points = placementPoints(
+                ranked.map((entry) => entry.rank),
+                game.pointsTable ?? tournament.pointsTable,
+                game.weight,
+                game.tieMode,
+            );
+            return {
+                // Das Board zeigt je Team die Punktsumme, nicht den Rohwert —
+                // deshalb eine eigene Metrik statt der des Spiels.
+                game: {
+                    ...game,
+                    primaryMetric: {
+                        key: 'punkte',
+                        label: 'Punkte',
+                        sortOrder: 'DESC' as const,
+                        formatter: 'decimal' as const,
+                    },
+                },
+                entries: teamPointsFromPlayers(
+                    ranked.map((entry, i) => ({
+                        entrantId: entry.entrantId,
+                        points: points[i]!,
+                    })),
+                    teamOf,
+                ),
+            };
+        }
+
         // Die einzige Verzweigung der Wertungskette: beide Module liefern
         // Zeilen mit `entrantId` und `rank`, also bleibt der Aufruf von
         // `placementPoints` darunter für beide Zweige unverändert.

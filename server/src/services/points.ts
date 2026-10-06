@@ -48,3 +48,30 @@ export const placementPoints = (
         return (sum / size) * weight;
     });
 };
+
+/**
+ * "Punkte pro Spieler" im Team-Turnier: jeder Spieler holt Platzierungspunkte
+ * für sich, sein Team bekommt die Summe seiner Mitglieder. Die Teams werden
+ * nach dieser Summe gerankt (Gleichstand teilt den Rang, 1, 2, 2, 4) — der
+ * Rang zählt für Medaillen und die olympische Reihenfolge.
+ *
+ * Spieler ohne Team fallen raus; Teams ohne wertenden Spieler erscheinen
+ * nicht. `value` ist die Punktsumme, weil der Rohwert über mehrere Spieler
+ * keinen Sinn mehr ergibt.
+ */
+export const teamPointsFromPlayers = (
+    players: { entrantId: string; points: number }[],
+    teamOf: Map<string, string>,
+): { entrantId: string; rank: number; value: number; points: number }[] => {
+    const sums = new Map<string, number>();
+    for (const { entrantId, points } of players) {
+        const team = teamOf.get(entrantId);
+        if (team) sums.set(team, (sums.get(team) ?? 0) + points);
+    }
+
+    const sorted = [...sums].sort((a, b) => b[1] - a[1]);
+    return sorted.map(([entrantId, points], i) => {
+        const first = sorted.findIndex(([, p]) => p === points);
+        return { entrantId, rank: first + 1, value: points, points };
+    });
+};

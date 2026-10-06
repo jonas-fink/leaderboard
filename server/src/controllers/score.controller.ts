@@ -2,9 +2,12 @@ import type { RequestHandler } from 'express';
 import * as scoreService from '#services/score.service';
 import { assertOwned, assertEntrantOwned } from '#services/tournament.service';
 import { getTeam } from '#services/team.service';
+import { getGame } from '#services/game.service';
 import { emitBoardUpdate } from '#realtime';
 import { httpError } from '#utils';
 import type {
+    Game,
+    Tournament,
     SubmitScoreInput,
     SubmitTeamScoreInput,
     UpdateScoreInput,
@@ -38,12 +41,44 @@ export const getScores: RequestHandler<
     );
 };
 
+/**
+ * Wer in dieser Disziplin gewertet wird: im Team-Turnier mit "Punkte pro
+ * Spieler" die Spieler, sonst der Modus des Turniers.
+ */
+const scoredBy = (tournament: Tournament, game: Game) =>
+    tournament.mode === 'team' &&
+    game.scoring === 'metric' &&
+    game.teamScoring === 'players'
+        ? 'player'
+        : tournament.mode;
+
+/** Spiel gehört zum Turnier und erwartet diese Art Ergebnis. */
+const assertScoreFits = async (
+    tournament: Tournament,
+    gameId: string,
+    entrantType: 'player' | 'team',
+) => {
+    const game = await getGame(gameId);
+    if (game.tournamentId !== tournament.id) {
+        throw httpError(400, 'Die Disziplin gehört nicht zu diesem Turnier');
+    }
+    if (scoredBy(tournament, game) !== entrantType) {
+        throw httpError(
+            400,
+            entrantType === 'team'
+                ? 'Diese Disziplin wertet Spieler, nicht Teams'
+                : 'Diese Disziplin wertet Teams, nicht Spieler',
+        );
+    }
+};
+
 export const postScore: RequestHandler<
     unknown,
     unknown,
     SubmitScoreInput
 > = async (req, res) => {
-    await assertOwned(req.body.tournamentId, req.user.id);
+    const tournament = await assertOwned(req.body.tournamentId, req.user.id);
+    await assertScoreFits(tournament, req.body.gameId, req.body.entrantType);
     await assertEntrantOwned(req.body, req.user.id);
     const score = await scoreService.createScore(req.body);
     await emitBoardUpdate(score.tournamentId);
@@ -56,7 +91,12 @@ export const postTeamScore: RequestHandler<
     unknown,
     SubmitTeamScoreInput
 > = async (req, res) => {
-    await assertOwned(req.body.tournamentId, req.user.id);
+    const tournament = await assertOwned(req.body.tournamentId, req.user.id);
+    // Kader-Eingabe gibt es nur im Einzelturnier — sie schreibt Spieler-Scores.
+    if (tournament.mode !== 'player') {
+        throw httpError(400, 'Kader-Eingabe gibt es nur im Einzelturnier');
+    }
+    await assertScoreFits(tournament, req.body.gameId, 'player');
     const team = await getTeam(req.body.teamId);
     // Sonst ließe sich der Kader eines fremden Turniers einschleusen.
     if (team.tournamentId !== req.body.tournamentId) {

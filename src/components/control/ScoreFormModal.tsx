@@ -43,17 +43,30 @@ export const ScoreFormModal = ({
     const submitTeamScore = useSubmitTeamScore();
     const pending = submitScore.isPending || submitTeamScore.isPending;
 
-    const teamMode = entrantType === 'team';
+    // "Punkte pro Spieler" im Teamturnier: gewertet werden die Mitglieder.
+    const perPlayer = entrantType === 'team' && game.teamScoring === 'players';
+    const teamMode = entrantType === 'team' && !perPlayer;
+    const scoredType = teamMode ? 'team' : 'player';
+    const nameOf = (p: (typeof players)[number]) => p.displayName || p.username;
     const entrants = teamMode
         ? teams.map((t) => ({ id: t.id, name: t.name }))
-        : players.map((p) => ({
-              id: p.id,
-              name: p.displayName || p.username,
-          }));
-    const isLoading = teamMode ? teamsLoading : playersLoading;
+        : perPlayer
+          ? teams.flatMap((t) =>
+                players
+                    .filter((p) => t.members.includes(p.id))
+                    .map((p) => ({
+                        id: p.id,
+                        name: `${nameOf(p)} (${t.name})`,
+                    })),
+            )
+          : players.map((p) => ({ id: p.id, name: nameOf(p) }));
+    const isLoading = teamsLoading || playersLoading;
     // Im Einzelmodus dienen Teams als Kader für Teamchallenges: ein Team zu
     // wählen trägt denselben Wert für jedes Mitglied ein.
-    const rosters = teamMode ? [] : teams.filter((t) => t.members.length > 0);
+    const rosters =
+        entrantType === 'player'
+            ? teams.filter((t) => t.members.length > 0)
+            : [];
     const roster = rosters.find((t) => `team:${t.id}` === entrantId);
 
     const isTime = game.primaryMetric.formatter === 'time_ms';
@@ -111,10 +124,8 @@ export const ScoreFormModal = ({
             {
                 tournamentId: game.tournamentId,
                 gameId: game.id,
-                entrantType,
-                ...(teamMode
-                    ? { teamId: entrantId }
-                    : { playerId: entrantId }),
+                entrantType: scoredType,
+                ...(teamMode ? { teamId: entrantId } : { playerId: entrantId }),
                 primaryValue,
             },
             done,

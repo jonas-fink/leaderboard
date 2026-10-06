@@ -58,7 +58,14 @@ export const updateGame = async (
     const current = await Game.findById(id);
     if (!current) throw notFound('Game');
 
-    if (patch.scoring !== undefined && patch.scoring !== current.scoring) {
+    // Auch "je Team" ↔ "je Spieler" passt nicht zu bestehenden Scores.
+    const changesTeamScoring =
+        patch.teamScoring !== undefined &&
+        patch.teamScoring !== current.teamScoring;
+    if (
+        (patch.scoring !== undefined && patch.scoring !== current.scoring) ||
+        changesTeamScoring
+    ) {
         const hasResults =
             current.scoring === 'metric'
                 ? (await Score.countDocuments({ gameId: id })) > 0
