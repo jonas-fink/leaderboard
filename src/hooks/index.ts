@@ -174,7 +174,9 @@ export const useCreateGame = () => {
     return useMutation({
         mutationFn: (input: CreateGameInput) => api.createGame(input),
         onSuccess: (game) => {
-            qc.invalidateQueries({ queryKey: queryKeys.games(game.tournamentId) });
+            qc.invalidateQueries({
+                queryKey: queryKeys.games(game.tournamentId),
+            });
         },
     });
 };
@@ -185,7 +187,9 @@ export const useUpdateGame = () => {
         mutationFn: ({ id, patch }: { id: string; patch: UpdateGameInput }) =>
             api.updateGame(id, patch),
         onSuccess: (game) => {
-            qc.invalidateQueries({ queryKey: queryKeys.games(game.tournamentId) });
+            qc.invalidateQueries({
+                queryKey: queryKeys.games(game.tournamentId),
+            });
             // pinned/Metrik-Änderungen verändern das Board.
             qc.invalidateQueries({
                 queryKey: queryKeys.leaderboards(game.tournamentId),
@@ -286,6 +290,15 @@ export const useCreateTournament = () => {
     return useMutation({
         mutationFn: (input: CreateTournamentInput) =>
             api.createTournament(input),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: queryKeys.tournaments }),
+    });
+};
+
+export const useDeleteTournament = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => api.deleteTournament(id),
         onSuccess: () =>
             qc.invalidateQueries({ queryKey: queryKeys.tournaments }),
     });

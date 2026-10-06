@@ -5,6 +5,7 @@ import { Field, FormError } from '../form';
 import {
     fieldErrors,
     ghostButtonClass,
+    parseTable,
     inputClass,
     primaryButtonClass,
 } from '../../lib/form';
@@ -77,12 +78,6 @@ const toForm = (game: Game): FormState => ({
     pointsTable: game.pointsTable?.join(', ') ?? '',
     tieMode: game.tieMode,
 });
-
-/** "5, 3, 1" oder "5-3-1" → [5, 3, 1]; leer → null (Tabelle des Turniers). */
-const parseTable = (value: string) => {
-    const parts = value.split(/[^0-9.]+/).filter(Boolean);
-    return parts.length ? parts.map(Number) : null;
-};
 
 interface GameFormModalProps {
     open: boolean;

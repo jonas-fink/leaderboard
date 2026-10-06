@@ -34,3 +34,9 @@ export const parseTime = (input: string): number | null => {
         Number(millis.padEnd(3, '0'))
     );
 };
+
+/** "5, 3, 1" oder "5-3-1" → [5, 3, 1]; leer → null (Standard übernehmen). */
+export const parseTable = (value: string) => {
+    const parts = value.split(/[^0-9.]+/).filter(Boolean);
+    return parts.length ? parts.map(Number) : null;
+};

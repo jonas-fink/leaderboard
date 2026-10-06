@@ -1,13 +1,23 @@
 import { useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
 import { Field, FormError, Modal } from '../components';
-import { ghostButtonClass, inputClass, primaryButtonClass } from '../lib/form';
-import { useCreateTournament, useMe, useUpdateTournament } from '../hooks';
+import {
+    ghostButtonClass,
+    inputClass,
+    parseTable,
+    primaryButtonClass,
+} from '../lib/form';
+import {
+    useCreateTournament,
+    useDeleteTournament,
+    useMe,
+    useUpdateTournament,
+} from '../hooks';
 import {
     selectTournament,
     useTournamentContext,
 } from '../hooks/useTournamentContext';
-import type { TournamentStatus } from '../schemas';
+import { CreateTournamentSchema, type TournamentStatus } from '../schemas';
 
 /** Bestätigt vom Projektleiter, je Turnier trotzdem änderbar (§4.2). */
 const DEFAULT_POINTS = [10, 8, 6, 5, 4, 3, 2, 1];
@@ -40,15 +50,58 @@ const Tournament = () => {
     const { data: me } = useMe();
     const createTournament = useCreateTournament();
     const updateTournament = useUpdateTournament();
+    const deleteTournament = useDeleteTournament();
+    // Zweistufig wie beim Spieler: erst "Löschen", dann bestätigen. Gemerkt
+    // wird die ID, damit nur die angeklickte Zeile umschaltet.
+    const [confirmId, setConfirmId] = useState<string | null>(null);
 
     const [open, setOpen] = useState(false);
+    // Dasselbe Formular legt an und bearbeitet; beim Bearbeiten ohne Modus
+    // (die Scores tragen ihn) und ohne neuen Slug (Board-Links bleiben).
+    const [editing, setEditing] = useState(false);
     const [title, setTitle] = useState('');
     const [mode, setMode] = useState<'player' | 'team'>('team');
+    const [table, setTable] = useState(DEFAULT_POINTS.join(', '));
+    const [tableError, setTableError] = useState<string>();
+
+    const openForm = (edit: boolean) => {
+        setEditing(edit);
+        setTitle(edit && tournament ? tournament.title : '');
+        setTable(
+            (edit && tournament ? tournament.pointsTable : DEFAULT_POINTS).join(
+                ', ',
+            ),
+        );
+        setTableError(undefined);
+        setOpen(true);
+    };
 
     const submit = (event: SubmitEvent) => {
         event.preventDefault();
         const trimmed = title.trim();
         if (!trimmed) return;
+
+        // Vorab prüfen, damit der Grund am Feld steht statt als pauschales
+        // "Validierung fehlgeschlagen" vom Server. Leer = Standardtabelle.
+        const pointsTable = CreateTournamentSchema.shape.pointsTable.safeParse(
+            parseTable(table) ?? DEFAULT_POINTS,
+        );
+        if (!pointsTable.success) {
+            setTableError(pointsTable.error.issues[0]?.message);
+            return;
+        }
+        setTableError(undefined);
+
+        if (editing && tournament) {
+            updateTournament.mutate(
+                {
+                    id: tournament.id,
+                    patch: { title: trimmed, pointsTable: pointsTable.data },
+                },
+                { onSuccess: () => setOpen(false) },
+            );
+            return;
+        }
 
         createTournament.mutate(
             {
@@ -56,7 +109,7 @@ const Tournament = () => {
                 title: trimmed,
                 mode,
                 startsAt: new Date().toISOString(),
-                pointsTable: DEFAULT_POINTS,
+                pointsTable: pointsTable.data,
                 // Die Defaults stehen im Zod-Schema, der abgeleitete Typ ist
                 // aber der Ausgabetyp — deshalb hier ausgeschrieben. Ein neues
                 // Turnier ist ohnehin ein Entwurf, bis es jemand live schaltet.
@@ -146,6 +199,13 @@ const Tournament = () => {
                                 >
                                     Board öffnen
                                 </Link>
+                                <button
+                                    type="button"
+                                    className={ghostButtonClass}
+                                    onClick={() => openForm(true)}
+                                >
+                                    Bearbeiten
+                                </button>
                                 <Link
                                     to={`/result/${me.slug}/${tournament.slug}`}
                                     className={ghostButtonClass}
@@ -187,6 +247,32 @@ const Tournament = () => {
                                     Öffnen
                                 </button>
                             )}
+                            <button
+                                type="button"
+                                disabled={deleteTournament.isPending}
+                                onClick={() =>
+                                    confirmId === item.id
+                                        ? deleteTournament.mutate(item.id, {
+                                              onSettled: () =>
+                                                  setConfirmId(null),
+                                          })
+                                        : setConfirmId(item.id)
+                                }
+                                onBlur={() =>
+                                    setConfirmId((id) =>
+                                        id === item.id ? null : id,
+                                    )
+                                }
+                                className={`cursor-pointer border-2 px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+                                    confirmId === item.id
+                                        ? 'border-orange bg-orange/80 text-ink hover:bg-orange'
+                                        : 'border-orange text-orange hover:bg-orange/10'
+                                }`}
+                            >
+                                {confirmId === item.id
+                                    ? 'Wirklich löschen? Alles darin geht mit.'
+                                    : 'Löschen'}
+                            </button>
                         </li>
                     ))}
                     {tournaments.length === 0 && (
@@ -195,11 +281,12 @@ const Tournament = () => {
                         </li>
                     )}
                 </ul>
-                <div className="border-t-2 border-line p-5">
+                <div className="flex flex-col gap-3 border-t-2 border-line p-5">
+                    <FormError error={deleteTournament.error} />
                     <button
                         type="button"
-                        className={primaryButtonClass}
-                        onClick={() => setOpen(true)}
+                        className={`${primaryButtonClass} self-start`}
+                        onClick={() => openForm(false)}
                     >
                         Turnier anlegen
                     </button>
@@ -209,15 +296,17 @@ const Tournament = () => {
             <Modal
                 open={open}
                 onClose={() => setOpen(false)}
-                title="Turnier anlegen"
+                title={editing ? 'Turnier bearbeiten' : 'Turnier anlegen'}
             >
                 <form onSubmit={submit} className="flex flex-col gap-5 p-5">
                     <Field
                         label="Titel"
                         hint={
-                            title
-                                ? `Adresse: /board/${slugify(title)}`
-                                : undefined
+                            editing
+                                ? 'Die Board-Adresse bleibt gleich.'
+                                : title
+                                  ? `Adresse: /board/${slugify(title)}`
+                                  : undefined
                         }
                     >
                         <input
@@ -228,25 +317,52 @@ const Tournament = () => {
                         />
                     </Field>
 
-                    <Field
-                        label="Modus"
-                        hint="Gilt für alle Disziplinen und lässt sich später nicht sinnvoll drehen."
-                    >
-                        <select
-                            className={inputClass}
-                            value={mode}
-                            onChange={(event) =>
-                                setMode(event.target.value as 'player' | 'team')
-                            }
+                    {!editing && (
+                        <Field
+                            label="Modus"
+                            hint="Gilt für alle Disziplinen und lässt sich später nicht sinnvoll drehen."
                         >
-                            <option value="team">Team gegen Team</option>
-                            <option value="player">
-                                Spieler gegen Spieler
-                            </option>
-                        </select>
+                            <select
+                                className={inputClass}
+                                value={mode}
+                                onChange={(event) =>
+                                    setMode(
+                                        event.target.value as 'player' | 'team',
+                                    )
+                                }
+                            >
+                                <option value="team">Team gegen Team</option>
+                                <option value="player">
+                                    Spieler gegen Spieler
+                                </option>
+                            </select>
+                        </Field>
+                    )}
+
+                    <Field
+                        label="Punktetabelle"
+                        error={tableError}
+                        hint={
+                            editing
+                                ? 'Gilt sofort für alle bisherigen Ergebnisse — die Gesamtwertung wird neu berechnet.'
+                                : 'Punkte für Platz 1, 2, 3 … — z. B. 5, 3, 1 belohnt nur die ersten drei. Disziplinen können eine eigene haben.'
+                        }
+                    >
+                        <input
+                            className={inputClass}
+                            value={table}
+                            onChange={(event) => setTable(event.target.value)}
+                            placeholder={DEFAULT_POINTS.join(', ')}
+                        />
                     </Field>
 
-                    <FormError error={createTournament.error} />
+                    <FormError
+                        error={
+                            editing
+                                ? updateTournament.error
+                                : createTournament.error
+                        }
+                    />
 
                     <div className="flex justify-end gap-3">
                         <button
@@ -257,7 +373,7 @@ const Tournament = () => {
                             Abbrechen
                         </button>
                         <button type="submit" className={primaryButtonClass}>
-                            Anlegen
+                            {editing ? 'Speichern' : 'Anlegen'}
                         </button>
                     </div>
                 </form>

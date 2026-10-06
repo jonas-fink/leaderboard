@@ -183,6 +183,10 @@ export const createTeam = (input: CreateTeamInput) =>
 export const updateTeam = (id: string, patch: UpdateTeamInput) =>
     request(`/teams/${id}`, TeamSchema, { method: 'PATCH', ...body(patch) });
 
+/** Nimmt Teams, Disziplinen, Scores und Matches mit (Server-Kaskade). */
+export const deleteTournament = (id: string) =>
+    request(`/tournaments/${id}`, voidSchema, { method: 'DELETE' });
+
 export const deleteTeam = (id: string) =>
     request(`/teams/${id}`, voidSchema, { method: 'DELETE' });
 

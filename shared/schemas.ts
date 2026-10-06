@@ -41,9 +41,11 @@ export const MetricConfigSchema = z.object({
 
 // Index 0 = Platz 1. Muss monoton fallen, sonst könnte ein schlechterer Rang
 // mehr Punkte einbringen als ein besserer — points.ts prüft das nicht nach.
+// Mindestens zwei Plätze: "531" ohne Trenner wäre sonst still eine einzige
+// Zahl, 531 Punkte für den Sieger.
 const PointsTableSchema = z
     .array(z.number().nonnegative())
-    .min(1)
+    .min(2, 'Mindestens zwei Plätze angeben, z. B. 5, 3, 1')
     .refine(
         (table) => table.every((v, i) => i === 0 || v <= table[i - 1]!),
         'Die Punktetabelle muss von Platz 1 an fallen',
@@ -75,14 +77,7 @@ const GameFields = z.object({
     // Eigene Punktetabelle der Disziplin, z.B. 5-3-1 für kleine Challenges.
     // Fehlt sie, gilt die Tabelle des Turniers. Nullable wie `endsAt`, damit
     // ein PATCH sie wieder entfernen kann.
-    // Mindestens zwei Plätze: "531" ohne Trenner wäre sonst still eine
-    // einzige Zahl, 531 Punkte für den Sieger.
-    pointsTable: PointsTableSchema.refine(
-        (table) => table.length >= 2,
-        'Mindestens zwei Plätze angeben, z. B. 5, 3, 1',
-    )
-        .nullable()
-        .optional(),
+    pointsTable: PointsTableSchema.nullable().optional(),
     // 'shared': jede Ranggruppe bekommt die vollen Punkte ihres Platzes
     // (Teamchallenges); 'average' mittelt wie beim Turnier.
     tieMode: z.enum(['average', 'shared']),
@@ -524,7 +519,9 @@ export const UserSchema = z.object({
 export const RegisterSchema = z
     .object({
         email: z.email(),
-        password: z.string().min(12, 'Passwort muss mindestens 12 Zeichen haben'),
+        password: z
+            .string()
+            .min(12, 'Passwort muss mindestens 12 Zeichen haben'),
         slug: AccountSlugSchema,
         displayName: z.string().trim().max(50).optional(),
         trap: z.string().optional(),
