@@ -3,7 +3,10 @@ import { Link } from 'react-router';
 import { Field, FormError, Modal } from '../components';
 import { ghostButtonClass, inputClass, primaryButtonClass } from '../lib/form';
 import { useCreateTournament, useMe, useUpdateTournament } from '../hooks';
-import { useTournamentContext } from '../hooks/useTournamentContext';
+import {
+    selectTournament,
+    useTournamentContext,
+} from '../hooks/useTournamentContext';
 import type { TournamentStatus } from '../schemas';
 
 /** Bestätigt vom Projektleiter, je Turnier trotzdem änderbar (§4.2). */
@@ -60,7 +63,13 @@ const Tournament = () => {
                 status: 'draft',
                 tieBreak: 'olympic',
             },
-            { onSuccess: () => setOpen(false) },
+            {
+                // Ein neues Turnier will man direkt bespielen.
+                onSuccess: (created) => {
+                    selectTournament(created.id);
+                    setOpen(false);
+                },
+            },
         );
     };
 
@@ -165,6 +174,19 @@ const Tournament = () => {
                             <span className="text-xs uppercase tracking-[0.14em] text-ink-mute">
                                 {item.status}
                             </span>
+                            {item.id === tournament?.id ? (
+                                <span className="w-20 text-center text-xs uppercase tracking-[0.14em] text-magenta">
+                                    Aktiv
+                                </span>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className={`${ghostButtonClass} w-20`}
+                                    onClick={() => selectTournament(item.id)}
+                                >
+                                    Öffnen
+                                </button>
+                            )}
                         </li>
                     ))}
                     {tournaments.length === 0 && (

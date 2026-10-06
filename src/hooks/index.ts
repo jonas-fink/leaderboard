@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+    useQuery,
+    useQueries,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
 import * as api from '../lib/api';
 import type {
     CreateGameInput,
@@ -90,6 +95,20 @@ export const useGames = (tournamentId: string | undefined) =>
         queryKey: queryKeys.games(tournamentId ?? ''),
         queryFn: () => api.fetchGames(tournamentId!),
         enabled: Boolean(tournamentId),
+    });
+
+/**
+ * Alle Games mehrerer Turniere, z.B. als Vorlagen für ein neues. Teilt sich
+ * den Cache mit `useGames`.
+ * ponytail: ein Request je Turnier; ein Sammel-Endpunkt erst bei vielen.
+ */
+export const useGamesOf = (tournamentIds: string[]) =>
+    useQueries({
+        queries: tournamentIds.map((id) => ({
+            queryKey: queryKeys.games(id),
+            queryFn: () => api.fetchGames(id),
+        })),
+        combine: (results) => results.flatMap((r) => r.data ?? []),
     });
 
 export const usePlayers = () =>

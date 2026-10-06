@@ -8,7 +8,13 @@ import {
     inputClass,
     primaryButtonClass,
 } from '../../lib/form';
-import { useCreateGame, useUpdateGame, useTournaments } from '../../hooks';
+import {
+    useCreateGame,
+    useGamesOf,
+    useUpdateGame,
+    useTournaments,
+} from '../../hooks';
+import { useTournamentContext } from '../../hooks/useTournamentContext';
 import { ImageField } from './ImageField';
 import { CreateGameSchema, type Game } from '../../schemas';
 
@@ -92,9 +98,28 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const { data: tournaments = [] } = useTournaments();
-    // Solange keine Wahl getroffen wurde, gilt das erste Turnier: bei einem
-    // einzigen laufenden Event wäre alles andere ein Klick zu viel.
-    const tournamentId = form.tournamentId || tournaments[0]?.id || '';
+    const { tournament: active } = useTournamentContext();
+    // Solange keine Wahl getroffen wurde, gilt das Turnier aus der Kopfzeile.
+    const tournamentId =
+        form.tournamentId || active?.id || tournaments[0]?.id || '';
+
+    // Vorlagen: Disziplinen aus allen anderen Turnieren, je Titel nur die
+    // neueste (Turniere kommen nach Start absteigend).
+    const templates = useGamesOf(
+        game
+            ? []
+            : tournaments.filter((t) => t.id !== tournamentId).map((t) => t.id),
+    ).filter(
+        (item, i, all) => all.findIndex((x) => x.title === item.title) === i,
+    );
+    const applyTemplate = (id: string) => {
+        const template = templates.find((item) => item.id === id);
+        // Das Zielturnier bleibt, alles andere kommt aus der Vorlage.
+        setForm({
+            ...(template ? toForm(template) : emptyForm),
+            tournamentId,
+        });
+    };
     const tournamentTable = tournaments
         .find((tournament) => tournament.id === tournamentId)
         ?.pointsTable.join(', ');
@@ -159,6 +184,26 @@ export const GameFormModal = ({ open, onClose, game }: GameFormModalProps) => {
             title={game ? 'Game bearbeiten' : 'Neues Game'}
         >
             <form onSubmit={handleSubmit} className="space-y-4">
+                {templates.length > 0 && (
+                    <Field
+                        label="Vorlage"
+                        hint="Übernimmt alle Felder einer Disziplin aus einem anderen Turnier"
+                    >
+                        <select
+                            className={inputClass}
+                            defaultValue=""
+                            onChange={(e) => applyTemplate(e.target.value)}
+                        >
+                            <option value="">Leer beginnen</option>
+                            {templates.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.title}
+                                </option>
+                            ))}
+                        </select>
+                    </Field>
+                )}
+
                 <Field label="Titel" error={errors.title}>
                     <input
                         className={inputClass}

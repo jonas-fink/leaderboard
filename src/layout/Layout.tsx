@@ -1,6 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { IoLogOutOutline } from 'react-icons/io5';
-import { useTournamentContext } from '../hooks/useTournamentContext';
+import {
+    selectTournament,
+    useTournamentContext,
+} from '../hooks/useTournamentContext';
 import { useLogout, useMe } from '../hooks';
 
 const TABS = [
@@ -17,7 +20,7 @@ const TABS = [
  * bedient, auf einem Tablet, in normalen Maßen.
  */
 const Layout = () => {
-    const { tournament } = useTournamentContext();
+    const { tournament, tournaments } = useTournamentContext();
     const { data: me } = useMe();
     const logout = useLogout();
     const navigate = useNavigate();
@@ -36,16 +39,25 @@ const Layout = () => {
                     </span>
                     <span className="h-6 w-0.5 bg-line" aria-hidden />
                     {tournament ? (
-                        <span className="flex items-center gap-2.5 border-2 border-line-strong bg-bg px-3.5 py-2">
-                            <span className="text-[15px] font-semibold text-ink">
-                                {tournament.title}
-                            </span>
+                        <label className="flex items-center gap-2.5 border-2 border-line-strong bg-bg px-3.5 py-1">
+                            <span className="sr-only">Turnier wechseln</span>
+                            <select
+                                value={tournament.id}
+                                onChange={(e) => selectTournament(e.target.value)}
+                                className="cursor-pointer bg-bg py-1 text-[15px] font-semibold text-ink outline-none"
+                            >
+                                {tournaments.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.title}
+                                    </option>
+                                ))}
+                            </select>
                             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-mute">
                                 {tournament.mode === 'team'
                                     ? 'Teamturnier'
                                     : 'Einzelturnier'}
                             </span>
-                        </span>
+                        </label>
                     ) : (
                         <span className="text-sm text-ink-mute">
                             Kein Turnier angelegt
