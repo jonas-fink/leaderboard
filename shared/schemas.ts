@@ -75,7 +75,14 @@ const GameFields = z.object({
     // Eigene Punktetabelle der Disziplin, z.B. 5-3-1 für kleine Challenges.
     // Fehlt sie, gilt die Tabelle des Turniers. Nullable wie `endsAt`, damit
     // ein PATCH sie wieder entfernen kann.
-    pointsTable: PointsTableSchema.nullable().optional(),
+    // Mindestens zwei Plätze: "531" ohne Trenner wäre sonst still eine
+    // einzige Zahl, 531 Punkte für den Sieger.
+    pointsTable: PointsTableSchema.refine(
+        (table) => table.length >= 2,
+        'Mindestens zwei Plätze angeben, z. B. 5, 3, 1',
+    )
+        .nullable()
+        .optional(),
     // 'shared': jede Ranggruppe bekommt die vollen Punkte ihres Platzes
     // (Teamchallenges); 'average' mittelt wie beim Turnier.
     tieMode: z.enum(['average', 'shared']),

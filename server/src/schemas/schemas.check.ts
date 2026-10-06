@@ -109,3 +109,10 @@ test('endsAt nimmt einen ISO-Zeitpunkt an und lehnt alles andere ab', () => {
 test('ein Game ohne endsAt bleibt gültig — der Countdown ist freiwillig', () => {
     assert.equal(CreateGameSchema.parse(spiel()).endsAt, undefined);
 });
+
+test('eine eigene Punktetabelle braucht mindestens zwei Plätze', () => {
+    // "531" ohne Trenner landet als [531] — das soll auffallen.
+    assert.equal(UpdateGameSchema.safeParse({ pointsTable: [531] }).success, false);
+    assert.equal(UpdateGameSchema.safeParse({ pointsTable: [5, 3] }).success, true);
+    assert.equal(UpdateGameSchema.safeParse({ pointsTable: null }).success, true);
+});
