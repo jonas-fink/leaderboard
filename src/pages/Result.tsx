@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import {
     ExitLink,
     GameWinners,
     PointsPerGame,
     Podium,
+    RevealStage,
 } from '../components/board';
 import { useBoard } from '../hooks/useBoard';
 
@@ -21,6 +23,10 @@ const GAME_COLORS = [
     'var(--color-orange)',
 ];
 
+/** Tasten des Moderators. Bild auf/ab, weil Presenter-Clicker genau die senden. */
+const NEXT_KEYS = [' ', 'Enter', 'ArrowRight', 'PageDown'];
+const BACK_KEYS = ['ArrowLeft', 'Backspace', 'PageUp'];
+
 /**
  * Die Siegerehrung (PROJEKT.md §2). Zeigt **alle** Disziplinen, auch die
  * ungepinnten — deshalb `allGames`. Sonst fehlten Punkte, die in der
@@ -29,6 +35,32 @@ const GAME_COLORS = [
 const Result = () => {
     const { userSlug = '', slug = '' } = useParams();
     const { board, error } = useBoard(userSlug, slug, true);
+
+    // Erst die Plätze einzeln vom letzten aufwärts, danach die Gesamtansicht.
+    // 0 = Vorspann, 1…total = ein Platz je Schritt, total + 1 = alles.
+    // ponytail: ein Reload beginnt von vorn; `?step=` erst, wenn das stört.
+    const [step, setStep] = useState(0);
+    const total = board?.standings.length ?? 0;
+    const advance = () => setStep((s) => Math.min(s + 1, total + 1));
+
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.metaKey || event.ctrlKey || event.altKey) return;
+            if (NEXT_KEYS.includes(event.key)) {
+                setStep((s) => Math.min(s + 1, total + 1));
+            } else if (BACK_KEYS.includes(event.key)) {
+                setStep((s) => Math.max(s - 1, 0));
+            } else if (event.key === 'Escape') {
+                setStep(total + 1);
+            } else {
+                return;
+            }
+            // Leertaste würde sonst scrollen, Enter einen fokussierten Link öffnen.
+            event.preventDefault();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [total]);
 
     if (error || !board) {
         return (
@@ -64,6 +96,7 @@ const Result = () => {
         <div className="board flex h-screen items-center justify-center overflow-hidden bg-bg">
             <div
                 className="relative overflow-hidden bg-bg font-sans text-ink"
+                onClick={advance}
                 style={{
                     width: 'calc(var(--u) * 1600)',
                     height: 'calc(var(--u) * 900)',
@@ -96,21 +129,33 @@ const Result = () => {
                     </div>
                 </div>
 
-                <div className="absolute left-40 top-130">
-                    <Podium
+                {step <= total ? (
+                    <RevealStage
                         standings={board.standings}
+                        step={step}
                         played={played}
                         gameCount={board.games.length}
+                        teams={board.tournament.mode === 'team'}
                     />
-                </div>
+                ) : (
+                    <>
+                        <div className="absolute left-40 top-130">
+                            <Podium
+                                standings={board.standings}
+                                played={played}
+                                gameCount={board.games.length}
+                            />
+                        </div>
 
-                <div className="absolute left-680 top-130">
-                    <PointsPerGame board={board} colorOf={colorOf} />
-                </div>
+                        <div className="absolute left-680 top-130">
+                            <PointsPerGame board={board} colorOf={colorOf} />
+                        </div>
 
-                <div className="absolute inset-x-40 bottom-34">
-                    <GameWinners board={board} colorOf={colorOf} />
-                </div>
+                        <div className="absolute inset-x-40 bottom-34">
+                            <GameWinners board={board} colorOf={colorOf} />
+                        </div>
+                    </>
+                )}
 
                 <div
                     aria-hidden

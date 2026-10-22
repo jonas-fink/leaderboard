@@ -1,5 +1,6 @@
 import PixelSprite from './PixelSprite';
 import type { BoardState } from '../../schemas';
+import { formatPoints as points, winLabel } from '../../utils';
 
 interface PodiumProps {
     standings: BoardState['standings'];
@@ -8,14 +9,9 @@ interface PodiumProps {
     gameCount: number;
 }
 
-const points = (value: number) => value.toFixed(1).replace('.', ',');
-
 /** Wie viele Disziplinsiege — Index 0 der rankCounts ist die Zahl der Ersten. */
 const wins = (entry: BoardState['standings'][number]) =>
     entry.rankCounts[0] ?? 0;
-
-const winLabel = (count: number) =>
-    `${count} Disziplinsieg${count === 1 ? '' : 'e'}`;
 
 /**
  * Die ersten drei der Gesamtwertung (PROJEKT.md §2). Platz 1 bekommt die
@@ -63,7 +59,7 @@ const Podium = ({ standings, played, gameCount }: PodiumProps) => {
                             </div>
                         </div>
                         <div
-                            className="font-semibold uppercase tracking-[0.1em] text-ink-soft"
+                            className="font-semibold uppercase tracking-widest text-ink-soft"
                             style={{ fontSize: 'calc(var(--u) * 16)' }}
                         >
                             {winLabel(wins(first))} · in{' '}
