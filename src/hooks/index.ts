@@ -19,6 +19,8 @@ import type {
     UpdateTeamInput,
     LoginInput,
     RegisterInput,
+    TokenInput,
+    ResetPasswordInput,
 } from '../schemas';
 
 export const queryKeys = {
@@ -80,6 +82,44 @@ export const useLogout = () => {
         onSuccess: () => qc.clear(),
     });
 };
+
+export const useResetPassword = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: ResetPasswordInput) => api.resetPassword(input),
+        // Der Reset meldet gleich an — wie Login.
+        onSuccess: (user) => qc.setQueryData(queryKeys.me, user),
+    });
+};
+
+export const useDeleteAccount = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: api.deleteAccount,
+        // Wie beim Abmelden: nichts vom gelöschten Konto darf im Cache bleiben.
+        onSuccess: () => qc.clear(),
+    });
+};
+
+/** Bestätigungslink aus der Mail: Registrierung oder Adresswechsel. */
+export const useConfirmLink = (type: 'verify' | 'email') => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: TokenInput) =>
+            type === 'email' ? api.confirmEmail(input) : api.verifyEmail(input),
+        onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.me }),
+    });
+};
+
+// Ohne Cache-Wirkung — nichts zu setzen oder zu invalidieren.
+export const useForgotPassword = () =>
+    useMutation({ mutationFn: api.forgotPassword });
+export const useResendVerification = () =>
+    useMutation({ mutationFn: api.resendVerification });
+export const useChangePassword = () =>
+    useMutation({ mutationFn: api.changePassword });
+export const useChangeEmail = () =>
+    useMutation({ mutationFn: api.changeEmail });
 
 // --- Queries -------------------------------------------------------------
 

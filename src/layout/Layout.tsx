@@ -5,7 +5,7 @@ import {
     selectTournament,
     useTournamentContext,
 } from '../hooks/useTournamentContext';
-import { useLogout, useMe } from '../hooks';
+import { useLogout, useMe, useResendVerification } from '../hooks';
 
 const TABS = [
     { to: '/control', label: 'WERTUNG', end: true },
@@ -13,6 +13,7 @@ const TABS = [
     { to: '/control/teams', label: 'TEAMS', end: false },
     { to: '/control/players', label: 'SPIELER', end: false },
     { to: '/control/tournament', label: 'TURNIER', end: false },
+    { to: '/control/account', label: 'KONTO', end: false },
 ];
 
 /**
@@ -24,6 +25,7 @@ const Layout = () => {
     const { tournament, tournaments } = useTournamentContext();
     const { data: me } = useMe();
     const logout = useLogout();
+    const resend = useResendVerification();
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const navRef = useRef<HTMLElement>(null);
@@ -97,6 +99,28 @@ const Layout = () => {
                     </button>
                 </div>
             </header>
+
+            {me && !me.verified && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b-2 border-orange bg-orange/10 px-4 py-2 text-sm text-orange md:px-6">
+                    <span>
+                        Bitte bestätige deine E-Mail-Adresse über den Link in
+                        der Mail an {me.email}.
+                    </span>
+                    {resend.isSuccess ? (
+                        <span>Gesendet.</span>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => resend.mutate()}
+                            disabled={resend.isPending}
+                            className="cursor-pointer font-semibold underline disabled:opacity-50"
+                        >
+                            Erneut senden
+                        </button>
+                    )}
+                    {resend.error && <span>{resend.error.message}</span>}
+                </div>
+            )}
 
             <nav
                 ref={navRef}

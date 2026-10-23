@@ -78,6 +78,13 @@ const Login = () => {
                         />
                     </Field>
 
+                    <Link
+                        to="/forgot-password"
+                        className="-mt-2 self-end text-xs text-ink-mute hover:text-cyan hover:underline"
+                    >
+                        Passwort vergessen?
+                    </Link>
+
                     <FormError
                         error={formError ? new Error(formError) : null}
                     />

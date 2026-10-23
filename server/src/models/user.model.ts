@@ -40,8 +40,8 @@ const userSchema = new Schema(
         // Jedes davor ausgestellte Token gilt nicht mehr. Deckt "überall
         // abmelden" und den (noch fehlenden) Passwortwechsel mit einem Feld ab.
         sessionsValidFrom: { type: Date, default: Date.now },
-        // ponytail: keine Mail-Verifikation. Feld reserviert, damit SMTP
-        // später ohne Schemaänderung nachrüstbar ist.
+        // Gesetzt per Bestätigungslink (Registrierung, Adresswechsel, Reset).
+        // Weich: ein unbestätigtes Konto ist voll nutzbar, sieht nur ein Banner.
         verifiedAt: Date,
     },
     { timestamps: true, toJSON: toJSONOptions },

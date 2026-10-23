@@ -60,6 +60,12 @@ export type {
     User,
     RegisterInput,
     LoginInput,
+    TokenInput,
+    ForgotPasswordInput,
+    ResetPasswordInput,
+    ChangePasswordInput,
+    ChangeEmailInput,
+    DeleteAccountInput,
     UploadResult,
 } from '#schemas';
 

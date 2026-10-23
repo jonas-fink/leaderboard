@@ -1,9 +1,7 @@
-import { rm } from 'node:fs/promises';
-import { join } from 'node:path';
 import { config } from '#config';
 import { connectDb, disconnectDb } from '#db';
-import { User, Tournament, Player } from '#models';
-import { deleteTournament } from '#services/tournament.service';
+import { User } from '#models';
+import { accountFootprint, deleteAccount } from '#services/account.service';
 
 /**
  * Entfernt ein Konto restlos: seine Turniere (samt Teams, Disziplinen,
@@ -32,9 +30,7 @@ if (!user) {
     process.exit(1);
 }
 
-const tournaments = await Tournament.find({ ownerId: user._id });
-const playerCount = await Player.countDocuments({ ownerId: user._id });
-const uploadDir = join(config.uploadDir, user.id);
+const { tournaments, playerCount, uploadDir } = await accountFootprint(user.id);
 
 if (!confirmed) {
     console.error(
@@ -49,12 +45,7 @@ if (!confirmed) {
     process.exit(1);
 }
 
-for (const tournament of tournaments) {
-    await deleteTournament(tournament.id);
-}
-await Player.deleteMany({ ownerId: user._id });
-await rm(uploadDir, { recursive: true, force: true });
-await User.deleteOne({ _id: user._id });
+await deleteAccount(user.id);
 
 console.log(
     `Konto "${email}" (${user.slug}) gelöscht: ${tournaments.length} Turnier(e), ` +

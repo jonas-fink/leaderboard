@@ -20,6 +20,12 @@ import {
     type SubmitMatchInput,
     type LoginInput,
     type RegisterInput,
+    type TokenInput,
+    type ForgotPasswordInput,
+    type ResetPasswordInput,
+    type ChangePasswordInput,
+    type ChangeEmailInput,
+    type DeleteAccountInput,
     type CreateTournamentInput,
     type UpdateTournamentInput,
     type CreateTeamInput,
@@ -124,6 +130,30 @@ export const logout = () =>
     request('/auth/logout', voidSchema, { method: 'POST' });
 
 export const fetchMe = () => request('/auth/me', UserSchema);
+
+const post = (path: string, input?: unknown) =>
+    request(path, voidSchema, {
+        method: 'POST',
+        ...(input === undefined ? {} : body(input)),
+    });
+
+export const resendVerification = () => post('/auth/verify/resend');
+export const verifyEmail = (input: TokenInput) => post('/auth/verify', input);
+export const forgotPassword = (input: ForgotPasswordInput) =>
+    post('/auth/password/forgot', input);
+export const resetPassword = (input: ResetPasswordInput) =>
+    request('/auth/password/reset', UserSchema, {
+        method: 'POST',
+        ...body(input),
+    });
+export const changePassword = (input: ChangePasswordInput) =>
+    post('/auth/password', input);
+export const changeEmail = (input: ChangeEmailInput) =>
+    post('/auth/email', input);
+export const confirmEmail = (input: TokenInput) =>
+    post('/auth/email/confirm', input);
+export const deleteAccount = (input: DeleteAccountInput) =>
+    request('/auth/me', voidSchema, { method: 'DELETE', ...body(input) });
 
 // --- Upload ------------------------------------------------------------------
 

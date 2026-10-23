@@ -11,6 +11,10 @@ import Board from './pages/Board';
 import Result from './pages/Result';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Confirm from './pages/Confirm';
+import Account from './pages/Account';
 
 /**
  * Drei Oberflächen mit verschiedenen Zielgeräten (PROJEKT.md §2). `/control`
@@ -24,6 +28,9 @@ const App = () => {
             <Route path="/" element={<Navigate to="/control" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/confirm" element={<Confirm />} />
             <Route path="/board/:userSlug/:slug" element={<Board />} />
             <Route path="/result/:userSlug/:slug" element={<Result />} />
             <Route path="/control" element={<RequireSession />}>
@@ -34,6 +41,7 @@ const App = () => {
                     <Route path="players" element={<Players />} />
                     <Route path="teams" element={<Teams />} />
                     <Route path="tournament" element={<Tournament />} />
+                    <Route path="account" element={<Account />} />
                 </Route>
             </Route>
         </Routes>

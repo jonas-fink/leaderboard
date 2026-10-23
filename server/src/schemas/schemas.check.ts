@@ -5,6 +5,7 @@ import {
     CreateGameSchema,
     UpdateGameSchema,
     SubmitMatchSchema,
+    ChangePasswordSchema,
 } from '#schemas';
 
 const turnier = (überschreiben: Record<string, unknown> = {}) => ({
@@ -140,4 +141,11 @@ test('ein Match mit Kommawert wird abgelehnt', () => {
     });
     assert.equal(SubmitMatchSchema.safeParse(match(2)).success, true);
     assert.equal(SubmitMatchSchema.safeParse(match(2.5)).success, false);
+});
+
+test('ein neues Passwort unter 12 Zeichen wird abgelehnt', () => {
+    const input = { currentPassword: 'alt', newPassword: 'zu-kurz' };
+    assert.ok(!ChangePasswordSchema.safeParse(input).success);
+    input.newPassword = 'lang-genug-1234';
+    assert.ok(ChangePasswordSchema.safeParse(input).success);
 });

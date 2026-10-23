@@ -1,5 +1,7 @@
 export * from './auth.service.ts';
 export * from './session.service.ts';
+export * from './mail.service.ts';
+export * from './account.service.ts';
 export * from './tournament.service.ts';
 export * from './team.service.ts';
 export * from './rank.ts';
