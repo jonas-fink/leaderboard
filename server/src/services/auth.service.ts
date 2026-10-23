@@ -95,6 +95,75 @@ export const verifyToken = (
 };
 
 // ---------------------------------------------------------------------------
+// Mail-Token
+//
+// Derselbe Aufbau wie das Sitzungs-Token, nur mit Zweck und optionaler
+// Adresse — als JSON, weil eine E-Mail Punkte enthält. Zustandslos: Einmal-
+// Nutzung entsteht über den Abgleich mit dem Konto, nicht über eine Tabelle.
+//   reset  — gilt nur, solange `iat >= sessionsValidFrom`; jeder Passwort-
+//            wechsel verschiebt das und entwertet damit den Link.
+//   verify — `email` muss noch die Adresse des Kontos sein.
+//   email  — `email` ist die neue Adresse.
+// ---------------------------------------------------------------------------
+
+export type MailPurpose = 'reset' | 'verify' | 'email';
+
+const MAIL_TTL_MS: Record<MailPurpose, number> = {
+    reset: 60 * 60 * 1000,
+    verify: 7 * 24 * 60 * 60 * 1000,
+    email: 60 * 60 * 1000,
+};
+
+type MailClaims = {
+    p: MailPurpose;
+    u: string;
+    iat: number;
+    x: number;
+    e?: string;
+};
+
+export const issueMailToken = (
+    purpose: MailPurpose,
+    userId: string,
+    email?: string,
+    now = Date.now(),
+): string => {
+    const claims: MailClaims = {
+        p: purpose,
+        u: userId,
+        iat: now,
+        x: now + MAIL_TTL_MS[purpose],
+        e: email,
+    };
+    const payload = JSON.stringify(claims);
+    return `${Buffer.from(payload).toString('base64url')}.${sign(payload)}`;
+};
+
+export const verifyMailToken = (
+    token: string,
+    purpose: MailPurpose,
+    now = Date.now(),
+): { userId: string; issuedAt: number; email?: string } | null => {
+    const [encoded, signature] = token.split('.');
+    if (!encoded || !signature) return null;
+
+    const payload = Buffer.from(encoded, 'base64url').toString();
+    if (!equals(signature, sign(payload))) return null;
+
+    let claims: MailClaims;
+    try {
+        claims = JSON.parse(payload) as MailClaims;
+    } catch {
+        return null;
+    }
+    // Der Zweck steht mit in der Signatur: ein Bestätigungslink taugt nicht
+    // als Reset-Link.
+    if (claims.p !== purpose || !(claims.x > now)) return null;
+
+    return { userId: claims.u, issuedAt: claims.iat, email: claims.e };
+};
+
+// ---------------------------------------------------------------------------
 // Bremse gegen Durchprobieren
 // ---------------------------------------------------------------------------
 
@@ -123,7 +192,11 @@ type Window = { count: number; resetAt: number };
  * müsste der Angreifer den Server neu starten können. Persistenz erst, wenn
  * mehrere Instanzen laufen.
  */
-const createThrottleBucket = () => {
+const createThrottleBucket = ({
+    windowMs = WINDOW_MS,
+    max = MAX_PER_IP,
+    maxTotal = MAX_TOTAL,
+} = {}) => {
     const attempts = new Map<string, Window>();
     const TOTAL = '*';
 
@@ -131,14 +204,14 @@ const createThrottleBucket = () => {
         const existing = attempts.get(key);
         if (existing && existing.resetAt > now) return existing;
 
-        const fresh = { count: 0, resetAt: now + WINDOW_MS };
+        const fresh = { count: 0, resetAt: now + windowMs };
         attempts.set(key, fresh);
         return fresh;
     };
 
     const isThrottled = (ip: string, now = Date.now()): boolean =>
-        windowFor(ip, now).count >= MAX_PER_IP ||
-        windowFor(TOTAL, now).count >= MAX_TOTAL;
+        windowFor(ip, now).count >= max ||
+        windowFor(TOTAL, now).count >= maxTotal;
 
     const note = (ip: string, now = Date.now()): void => {
         // Abgelaufene Einträge räumen, damit die Map nicht mit jeder fremden
@@ -172,3 +245,33 @@ export const clearFailedLogins = loginThrottle.clear;
 const registerThrottle = createThrottleBucket();
 export const isRegisterThrottled = registerThrottle.isThrottled;
 export const noteRegisterAttempt = registerThrottle.note;
+
+/**
+ * Dritte Bremse für alles, was eine Mail verschickt (Passwort vergessen,
+ * Bestätigung erneut, Adresswechsel) — gegen Mail-Bombing über unser Konto
+ * bei Resend. Zählt je Absender-IP.
+ */
+const mailThrottle = createThrottleBucket();
+export const isMailThrottled = mailThrottle.isThrottled;
+export const noteMailSent = mailThrottle.note;
+
+/**
+ * Vierte Bremse, je Empfängeradresse: 3 Mails pro Stunde. Ergänzt die
+ * IP-Bremse — die hält einen Absender auf, der viele Adressen beschießt;
+ * diese einen Angreifer, der eine Adresse über viele IPs flutet.
+ * Kein Gesamtdeckel: den trägt schon die IP-Bremse.
+ */
+const recipientThrottle = createThrottleBucket({
+    windowMs: 60 * 60 * 1000,
+    max: 3,
+    maxTotal: Infinity,
+});
+
+/** Zählt die Mail gleich mit, wenn sie raus darf. Adresse klein geschrieben,
+ *  sonst wäre `A@x.de` ein frischer Zähler. */
+export const allowMailTo = (email: string, now = Date.now()): boolean => {
+    const key = email.toLowerCase();
+    if (recipientThrottle.isThrottled(key, now)) return false;
+    recipientThrottle.note(key, now);
+    return true;
+};

@@ -496,6 +496,9 @@ export const RESERVED_SLUGS = [
     'register',
     'api',
     'uploads',
+    'forgot-password',
+    'reset-password',
+    'confirm',
 ] as const;
 
 const isNotReservedSlug = (slug: string): boolean =>
@@ -516,7 +519,14 @@ export const UserSchema = z.object({
     email: z.email(),
     slug: AccountSlugSchema,
     displayName: z.string().trim().max(50).optional(),
+    /** Ob die Adresse per Link bestätigt ist — weich, sperrt nichts. */
+    verified: z.boolean(),
 });
+
+/** Eine Regel für jedes neue Passwort: Registrierung, Reset, Wechsel. */
+const PasswordSchema = z
+    .string()
+    .min(12, 'Passwort muss mindestens 12 Zeichen haben');
 
 /**
  * Registrierung. `trap` ist das Honeypot-Feld: per CSS ausgeblendet, ein
@@ -526,9 +536,7 @@ export const UserSchema = z.object({
 export const RegisterSchema = z
     .object({
         email: z.email(),
-        password: z
-            .string()
-            .min(12, 'Passwort muss mindestens 12 Zeichen haben'),
+        password: PasswordSchema,
         slug: AccountSlugSchema,
         displayName: z.string().trim().max(50).optional(),
         trap: z.string().optional(),
@@ -543,12 +551,42 @@ export const LoginSchema = z.object({
     password: z.string().min(1),
 });
 
+/** Der signierte Token aus einem Mail-Link. */
+export const TokenSchema = z.object({ token: z.string().min(1) });
+
+export const ForgotPasswordSchema = z.object({ email: z.email() });
+
+export const ResetPasswordSchema = TokenSchema.extend({
+    password: PasswordSchema,
+});
+
+export const ChangePasswordSchema = z.object({
+    currentPassword: z.string().min(1),
+    newPassword: PasswordSchema,
+});
+
+/** Kontolöschung verlangt das Passwort — eine offene Sitzung allein reicht nicht. */
+export const DeleteAccountSchema = z.object({
+    currentPassword: z.string().min(1),
+});
+
+export const ChangeEmailSchema = z.object({
+    currentPassword: z.string().min(1),
+    newEmail: z.email(),
+});
+
 /** Antwort des Uploads; die Adresse wandert danach in ein Entitätsfeld. */
 export const UploadResultSchema = z.object({ url: ImageUrlSchema });
 
 export type User = z.infer<typeof UserSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
+export type TokenInput = z.infer<typeof TokenSchema>;
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
+export type ChangeEmailInput = z.infer<typeof ChangeEmailSchema>;
+export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;
 export type UploadResult = z.infer<typeof UploadResultSchema>;
 
 // --- Socket-Events (PROJEKT.md §5, KONVENTIONEN.md §8) ---------------------

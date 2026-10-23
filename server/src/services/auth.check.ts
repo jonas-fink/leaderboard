@@ -16,6 +16,9 @@ const {
     clearFailedLogins,
     isRegisterThrottled,
     noteRegisterAttempt,
+    issueMailToken,
+    verifyMailToken,
+    allowMailTo,
 } = await import('#services/auth.service');
 
 test('Hash prüft das richtige Passwort und lehnt das falsche ab', () => {
@@ -111,4 +114,49 @@ test('Registrier-Throttle zählt getrennt von der Anmelde-Throttle', () => {
     assert.ok(isRegisterThrottled(ip, now));
     // Dieselbe Adresse ist bei der Anmeldung weiterhin unbescholten.
     assert.ok(!isThrottled(ip, now));
+});
+
+test('Mail-Token trägt Konto und Adresse zurück', () => {
+    const token = issueMailToken('email', 'user-1', 'neu@example.com', 1000);
+    assert.deepEqual(verifyMailToken(token, 'email', 2000), {
+        userId: 'user-1',
+        issuedAt: 1000,
+        email: 'neu@example.com',
+    });
+});
+
+test('Mail-Token gilt nur für seinen Zweck', () => {
+    const token = issueMailToken('verify', 'user-1', 'a@example.com');
+    assert.equal(verifyMailToken(token, 'reset'), null);
+});
+
+test('Reset-Token läuft nach einer Stunde ab', () => {
+    const token = issueMailToken('reset', 'user-1', undefined, 0);
+    assert.ok(verifyMailToken(token, 'reset', 59 * 60 * 1000));
+    assert.equal(verifyMailToken(token, 'reset', 61 * 60 * 1000), null);
+});
+
+test('Verfälschtes Mail-Token ergibt null statt zu werfen', () => {
+    const token = issueMailToken('reset', 'user-1');
+    const [, signature] = token.split('.');
+    // Anderes Konto, alte Signatur.
+    const forged = Buffer.from(
+        JSON.stringify({ p: 'reset', u: 'user-2', iat: 0, x: 9e15 }),
+    ).toString('base64url');
+    assert.equal(verifyMailToken(`${forged}.${signature}`, 'reset'), null);
+    for (const bad of ['', '.', 'abc.def']) {
+        assert.equal(verifyMailToken(bad, 'reset'), null, bad);
+    }
+});
+
+test('Eine Adresse bekommt höchstens 3 Mails pro Stunde, egal wie geschrieben', () => {
+    const now = Date.now() + 3 * 60 * 60 * 1000;
+    assert.ok(allowMailTo('opfer@example.com', now));
+    assert.ok(allowMailTo('Opfer@Example.com', now));
+    assert.ok(allowMailTo('opfer@example.com', now));
+    assert.ok(!allowMailTo('OPFER@example.com', now));
+    // Andere Adressen sind davon unberührt.
+    assert.ok(allowMailTo('jemand@example.com', now));
+    // Nach einer Stunde wieder frei.
+    assert.ok(allowMailTo('opfer@example.com', now + 61 * 60 * 1000));
 });
