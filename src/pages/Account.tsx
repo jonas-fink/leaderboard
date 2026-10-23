@@ -24,15 +24,19 @@ import {
 const Section = ({
     title,
     children,
+    className = '',
 }: {
     title: string;
     children: ReactNode;
+    className?: string;
 }) => (
-    <section className="border-2 border-line bg-surface">
+    <section
+        className={`flex flex-col border-2 border-line bg-surface ${className}`}
+    >
         <h2 className="border-b-2 border-line px-5 py-3.5 font-display text-[15px] tracking-[0.12em] text-ink">
             {title}
         </h2>
-        <div className="flex flex-col gap-4 p-5">{children}</div>
+        <div className="flex grow flex-col gap-4 p-5">{children}</div>
     </section>
 );
 
@@ -72,7 +76,7 @@ const PasswordForm = () => {
 
     const shown = { ...server.fields, ...errors };
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4">
+        <form onSubmit={submit} className="flex grow flex-col gap-4">
             <Field label="Aktuelles Passwort" error={shown.currentPassword}>
                 <input
                     type="password"
@@ -102,7 +106,7 @@ const PasswordForm = () => {
             <button
                 type="submit"
                 disabled={change.isPending}
-                className={`${primaryButtonClass} self-start`}
+                className={`${primaryButtonClass} ${formButtonLayout}`}
             >
                 {change.isPending ? 'Speichern…' : 'Passwort ändern'}
             </button>
@@ -135,7 +139,7 @@ const EmailForm = () => {
 
     const shown = { ...server.fields, ...errors };
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4">
+        <form onSubmit={submit} className="flex grow flex-col gap-4">
             <Field label="Neue E-Mail" error={shown.newEmail}>
                 <input
                     type="email"
@@ -164,13 +168,17 @@ const EmailForm = () => {
             <button
                 type="submit"
                 disabled={change.isPending}
-                className={`${primaryButtonClass} self-start`}
+                className={`${primaryButtonClass} ${formButtonLayout}`}
             >
                 {change.isPending ? 'Senden…' : 'Adresse ändern'}
             </button>
         </form>
     );
 };
+
+/** Mobil volle Breite (Daumen), ab sm an den Inhalt geschmiegt und unten
+ *  ausgerichtet — nebeneinander stehende Karten enden sonst verschieden. */
+const formButtonLayout = 'w-full sm:mt-auto sm:w-auto sm:self-start';
 
 const dangerButtonClass =
     'cursor-pointer border-2 border-orange bg-orange/10 px-4 py-2 text-sm font-semibold text-orange transition-colors hover:bg-orange hover:text-bg disabled:cursor-not-allowed disabled:opacity-50';
@@ -218,17 +226,19 @@ const DeleteAccount = () => {
     const shown = { ...server.fields, ...errors };
     return (
         <>
-            <p className="text-sm text-ink-soft">
-                Löscht dein Konto und alles, was daran hängt. Das lässt sich
-                nicht rückgängig machen.
-            </p>
-            <button
-                type="button"
-                onClick={() => setOpen(true)}
-                className={`${dangerButtonClass} self-start`}
-            >
-                Konto löschen…
-            </button>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-ink-soft">
+                    Löscht dein Konto und alles, was daran hängt. Das lässt sich
+                    nicht rückgängig machen.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className={`${dangerButtonClass} w-full shrink-0 sm:w-auto`}
+                >
+                    Konto löschen…
+                </button>
+            </div>
 
             <Modal open={open} onClose={close} title="Konto endgültig löschen?">
                 <form onSubmit={submit} className="flex flex-col gap-4">
@@ -298,16 +308,30 @@ const Account = () => {
     const { data: me } = useMe();
 
     return (
-        <div className="flex max-w-xl flex-col gap-6">
-            <Section title="KONTO">
-                <p className="text-sm text-ink-soft">
-                    {me?.email}{' '}
-                    <span
-                        className={me?.verified ? 'text-cyan' : 'text-orange'}
-                    >
-                        ({me?.verified ? 'bestätigt' : 'nicht bestätigt'})
-                    </span>
-                </p>
+        // Mittig mit Höchstbreite, damit die Formulare auf breiten Schirmen
+        // nicht am linken Rand kleben; ab lg Passwort und E-Mail nebeneinander.
+        <div className="mx-auto grid w-full max-w-5xl gap-4 md:gap-6 lg:grid-cols-2">
+            <Section title="KONTO" className="lg:col-span-2">
+                <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div className="min-w-0">
+                        <dt className="text-xs uppercase tracking-[0.14em] text-ink-mute">
+                            E-Mail
+                        </dt>
+                        <dd className="break-all text-ink">{me?.email}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs uppercase tracking-[0.14em] text-ink-mute">
+                            Status
+                        </dt>
+                        <dd
+                            className={
+                                me?.verified ? 'text-cyan' : 'text-orange'
+                            }
+                        >
+                            {me?.verified ? 'Bestätigt' : 'Nicht bestätigt'}
+                        </dd>
+                    </div>
+                </dl>
             </Section>
             <Section title="PASSWORT ÄNDERN">
                 <PasswordForm />
@@ -315,7 +339,7 @@ const Account = () => {
             <Section title="E-MAIL ÄNDERN">
                 <EmailForm />
             </Section>
-            <Section title="KONTO LÖSCHEN">
+            <Section title="KONTO LÖSCHEN" className="lg:col-span-2">
                 <DeleteAccount />
             </Section>
         </div>
