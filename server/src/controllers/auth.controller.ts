@@ -48,7 +48,7 @@ import type {
  *  gegen viele parallele hilft nur der Zähler in `isThrottled`. */
 const PENALTY_MS = 500;
 
-/** Hinter dem Funnel ist die Verbindung immer localhost; die echte Adresse
+/** Hinter dem Tunnel ist die Verbindung immer localhost; die echte Adresse
  *  steht im X-Forwarded-For, dem Express über `trust proxy` glaubt. */
 const clientIp = (req: { ip?: string }): string => req.ip ?? 'unbekannt';
 

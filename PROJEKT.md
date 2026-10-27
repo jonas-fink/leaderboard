@@ -388,7 +388,7 @@ Besitz über ihr Turnier. Ein Zugriff auf ein fremdes Objekt — lesend wie
 schreibend — endet mit `404`, nie `403`: eine `403` würde bestätigen, dass die
 ID überhaupt existiert.
 
-**Die gesamte Anwendung läuft über den Tailscale Funnel**, auch das
+**Die gesamte Anwendung läuft über den Cloudflare Tunnel**, auch das
 Control-Panel. Die Sitzung ist dadurch der einzige Zugriffsschutz; das Cookie
 ist für JavaScript unlesbar (`httpOnly`) und wird bei fremdinitiierten
 Requests nicht mitgeschickt (`SameSite=Lax`), ein CSRF-Token ist deshalb
@@ -480,13 +480,21 @@ die Leitung am Venue unsicher ist.
 **Named Volume — zwingend**, sonst sind die Bilder nach dem nächsten Rebuild
 weg: `uploads` → das Upload-Verzeichnis des Servers.
 
-**Erreichbarkeit:** Tailscale Funnel auf Port 8443, weitergereicht an 4000 auf
-localhost — 443 belegt der Nachbardienst sokorefactor (lokal 8080). Öffentlich
-also `https://jonasdev.tail2593e2.ts.net:8443`. Wird der Node umbenannt, hängt
-die Funnel-Konfiguration am alten Namen und jeder TLS-Handshake bricht ab —
-dann hilft nur `tailscale serve reset` und beide Regeln neu setzen.
-Funnel muss einmalig in der Tailnet-Policy freigeschaltet werden
-(`nodeAttrs` mit `funnel`); öffentlich verfügbar sind nur 443, 8443 und 10000.
+**Erreichbarkeit:** Cloudflare Tunnel, öffentlich unter
+`https://pixelboard.dev`. Der Connector (`cloudflared`) läuft auf demselben
+Server als Prozess des Users `claude-agent`
+(`/home/claude-agent/.local/bin/cloudflared tunnel run --token …`) und reicht
+an 4000 auf localhost weiter — der Port bleibt deshalb an `127.0.0.1`
+gebunden, eingehende Verbindungen gibt es keine. TLS und Domain kommen von
+Cloudflare.
+
+Der Tunnel ist remote verwaltet: Hostname und Ziel stehen im Zero-Trust-
+Dashboard (Networks → Tunnels), nicht in einer Datei auf dem Server; das Token
+im Aufruf ist ein Secret und gehört nicht ins Repo. Cloudflare kündigt
+Mindestversionen per Mail an — die Version des Connectors zeigt das Dashboard,
+aktualisiert wird das Binary unter `~claude-agent/.local/bin`.
+
+Den früheren Tailscale Funnel (Port 8443) nutzt das Board nicht mehr.
 
 API- und Socket-URL sind **nicht** konfigurierbar und müssen es nicht sein:
 der Client spricht immer seinen eigenen Origin an. Lokal leitet der Vite-Proxy

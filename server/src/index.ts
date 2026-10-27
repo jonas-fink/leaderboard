@@ -9,7 +9,7 @@ import { initRealtime } from '#realtime';
 
 const app = express();
 
-// Die Anwendung steht hinter dem Tailscale Funnel, der auf localhost
+// Die Anwendung steht hinter dem Cloudflare Tunnel, der auf localhost
 // weiterreicht und die echte Adresse in X-Forwarded-For anhängt. Ohne das
 // hier sähe die Anmeldebremse für jeden Besucher dieselbe IP.
 app.set('trust proxy', 'loopback');

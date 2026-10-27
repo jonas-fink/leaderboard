@@ -16,7 +16,7 @@
         "label": "Punkt eintragen",
         "focus": [
           "control",
-          "funnel",
+          "tunnel",
           "express",
           "guard",
           "scoring",
@@ -38,7 +38,7 @@
         "id": "zugriffsschutz",
         "label": "Zugriffsschutz",
         "focus": [
-          "funnel",
+          "tunnel",
           "express",
           "guard",
           "board"
@@ -99,10 +99,10 @@
       ]
     },
     {
-      "id": "funnel",
+      "id": "tunnel",
       "type": "security",
-      "label": "Tailscale Funnel",
-      "sublabel": ":8443 → 127.0.0.1:4000",
+      "label": "Cloudflare Tunnel",
+      "sublabel": "pixelboard.dev → 127.0.0.1:4000",
       "tag": "TLS",
       "pos": [
         250,
@@ -261,20 +261,20 @@
     {
       "id": "control-https",
       "from": "control",
-      "to": "funnel",
+      "to": "tunnel",
       "label": "HTTPS",
       "variant": "emphasis"
     },
     {
       "id": "board-https",
       "from": "board",
-      "to": "funnel",
+      "to": "tunnel",
       "label": "HTTPS",
       "variant": "emphasis"
     },
     {
-      "id": "funnel-proxy",
-      "from": "funnel",
+      "id": "tunnel-proxy",
+      "from": "tunnel",
       "to": "express",
       "label": "X-Forwarded-For",
       "variant": "emphasis"
@@ -353,7 +353,7 @@
       "items": [
         "requireAdmin sperrt alles außer /api/board, auch das Lesen",
         "Token aus ADMIN_PIN, im localStorage statt im Cookie",
-        "TLS und öffentliche Adresse kommen vom Funnel"
+        "TLS und öffentliche Adresse kommen vom Cloudflare Tunnel"
       ]
     }
   ]

@@ -1,5 +1,5 @@
 # Ein Image, ein Prozess: Express liefert API und gebautes Frontend.
-# Mongo kommt von Atlas, TLS vom Tailscale Funnel — beides nicht unser Problem.
+# Mongo kommt von Atlas, TLS vom Cloudflare Tunnel — beides nicht unser Problem.
 
 # BuildKit baut beide Stages parallel — über eine dünne Leitung reißt npm
 # dabei ab (ECONNRESET). Weniger Verbindungen, dafür mehr Geduld.

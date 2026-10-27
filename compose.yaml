@@ -7,7 +7,7 @@ services:
             # Überschreibt die Pfade aus der .env: im Container liegen sie absolut.
             UPLOAD_DIR: /app/uploads
             CLIENT_DIR: /app/dist
-        # Nur auf localhost — nach außen geht ausschließlich der Funnel.
+        # Nur auf localhost — nach außen geht ausschließlich der Cloudflare Tunnel.
         ports:
             - '127.0.0.1:4000:4000'
         volumes:

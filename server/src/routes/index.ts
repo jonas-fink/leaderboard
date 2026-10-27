@@ -18,7 +18,7 @@ apiRouter.use('/auth', authRouter);
 
 // Öffentlich, ohne Token: genau das, was die Leinwand anzeigt. Der
 // Beamer-Rechner steht nicht im selben Netz und kommt wie alle anderen über
-// den Funnel — er kann sich nicht anmelden und soll es auch nicht müssen.
+// den Cloudflare Tunnel — er kann sich nicht anmelden und soll es auch nicht müssen.
 apiRouter.use('/board', boardRouter);
 
 // Ab hier ist alles zu, auch das Lesen (AC-3.8). Ein Besucher sieht das Board
